@@ -18,6 +18,8 @@ The whole process takes about 7 hours to complete on my computer. Other than the
 
 After boot-up, you can log into the "me" account. Type `startx` to bring up the GUI, and then right-click to bring up the programs menu.
 
+To adjust screen brightness, go into /sys/class/backlight/intel_backlight and echo a number into the file called brightness. This number must be less than the one in the file max_brightness. To make the change permanent, edit the corresponding line in /etc/init.d/setup.
+
 To connect to a wireless point, first set it up by typing (as root)
 
 `wpa_passphrase [SSID] [password] >> /etc/wpa_supplicant.conf`
