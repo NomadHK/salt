@@ -28,7 +28,7 @@ Chrome sometimes refuses to appear. In that case, kill the lurking chrome proces
 
 `LD_LIBRARY_PATH=/opt/[dir]/lib /opt/[dir]/blender`
 
-To shutdown, type `init 0`. To reboot, type `init 6`.
+Finally, to shutdown, type `init 0`, or to reboot, type `init 6`.
 
 **If your computer has different parts from mine or if you don't like the way SALT is packaged**
 
