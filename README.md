@@ -1,14 +1,14 @@
 ### SALT1
 This is a scripted record of my LFS installation. If you have a computer like mine (Dell Inspiron 7347, Core i5-4210U) and share my penchant for no-frills geeky system, you may like to try it:
 
-Boot into Lubuntu LiveCD/USB.
+Boot into Lubuntu LiveCD/USB. Connect to the internet. Download the build script.
 
 Create three partitions:
 * /dev/sda1, FAT32, 100MB, esp
 * /dev/sda2, ext4, whatever size minus swap, root
 * /dev/sda3, swap
 
-The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 1068 in the downloaded script. Change the timezone at line 555. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
+The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 1068 in the script. Change the timezone at line 555. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
 
 Run the script.
 
