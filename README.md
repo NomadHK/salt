@@ -24,7 +24,7 @@ To connect to a wireless point, first set it up by typing (as root)
 
 `wpa_passphrase [SSID] [password] >> /etc/wpa_supplicant.conf`
 
-and then connect by typing `dhcpcd` and disconnect by `dhcpcd -k`.
+and then connect by typing (as root or sudo) `dhcpcd` and disconnect by `dhcpcd -k`.
 
 To scan for Wifi points, type (as root or sudo) `wpa_cli scan` followed by `wpa_cli scan_results`. You can use the same commands to check the signal strength of your wireless connection.
 
@@ -34,7 +34,7 @@ Chrome sometimes refuses to appear. In that case, kill the lurking chrome proces
 
 `LD_LIBRARY_PATH=/opt/[dir]/lib /opt/[dir]/blender`
 
-Finally, to shutdown, type `init 0`, or to reboot, type `init 6`.
+Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 6`.
 
 **If your computer is different from mine or you don't like how SALT is packaged**
 
