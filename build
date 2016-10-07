@@ -1330,7 +1330,7 @@ make && make install
 popd
 rm -rf alsa-utils-1.1.2
 
-# OpenSSL (Wpa_supplicant and Xorg-server)
+# OpenSSL (for Wpa_supplicant and Xorg-server)
 tar -xf openssl-1.0.2h.tar.gz
 pushd openssl-1.0.2h
 ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib shared zlib-dynamic no-rc5 no-idea
