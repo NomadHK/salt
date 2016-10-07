@@ -1,5 +1,5 @@
 ### SALT v1
-This is a scripted record of my LFS installation. If you have a computer like mine and share my penchant for no-frills geeky system, you may like to try it:
+This is a scripted record of my LFS installation. If you have a computer like mine (Dell Inspiron 7347, Intel Core i5-4210U) and share my penchant for no-frills geeky system, you may like to try it:
 
 Boot into Lubuntu LiveCD/USB.
 
@@ -32,4 +32,4 @@ Finally, to shutdown, type `init 0`, or to reboot, type `init 6`.
 
 **If your computer has different parts from mine or if you don't like the way SALT is packaged**
 
-This script can be used as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above cases of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system (sure it takes 7+ hours but you can let it run while you sleep; Microsoft Windows often take as long to update). I updated my script/system within an hour of reading about the Xlib vulnerability a few days ago. The Linux kernel of course as usual can be updated by compiling it and replacing the old one in /dev/sda1/efi/boot with it.
+This script can be used as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above cases of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system (sure it takes 7+ hours but you can let it run while you sleep; Microsoft Windows often take as long to update). I updated my script/system within an hour of reading about the Xlib vulnerability a few days ago. The Linux kernel of course as usual can be updated by compiling it and replacing the old one in /dev/sda1/efi/boot with it.
