@@ -8,11 +8,11 @@ Create three partitions:
 * /dev/sda2, ext4, whatever size minus swap, root
 * /dev/sda3, swap
 
-Run the downloaded script.
+The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 1068 in the downloaded script. Change the timezone at line 555. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
+
+Run the script.
 
 The whole process takes about 7 hours to complete on my computer. Other than the base LFS programs (without Attr, Acl, Libcap, Grub, Libpipeline, Man-DB, Texinfo and any documentation), it also installs Sudo, ALSA, Dhcpcd, Wpa_supplicant, X, Wacom driver, Openbox, Gimp, Urxvt, Xfe, Xfw, Mplayer, Transmission-cli and Chrome. I've also included Wayland and Vulkan for study; if you don't want them, comment out lines 1532-1545 and remove the mention of wayland and vulkan at the end of line 1551. The programs are up-to-date (upstream) as of the first week of Oct 2016. They take up a little less than 1GB of disk space. Idle running uses less than 40MB of RAM; Chrome bumps it up to about 400MB.
-
-The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 1068.
 
 After boot-up, you can log into the "me" account. Type `startx` to bring up the GUI, and then right-click to bring up the programs menu.
 
