@@ -41,3 +41,5 @@ Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 
 This script can be used as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above examples of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system (sure it takes 7+ hours but you can let it run while you sleep; Microsoft Windows often take as long to update). I updated my script/system within an hour of reading about the Xlib vulnerability a few days ago.
 
 The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot. To generate the same kernel .config, execute lines 1062-1297 in isolation (make sure you strip off the backslashes before the "s and $s if you run it directly as a command in terminal).
+
+Consult lines 1688-1710 on how to install fonts.
