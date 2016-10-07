@@ -1314,7 +1314,7 @@ pushd sudo-1.8.17p1
 make && make install && ln -sf libsudo_util.so.0.0.0 /usr/lib/sudo/libsudo_util.so.0
 popd
 rm -rf sudo-1.8.17p1
-sed -i 's/root ALL=(ALL) ALL/me ALL=(ALL) ALL/' /etc/sudoers
+sed -i 's/root ALL=(ALL) ALL/me ALL=(ALL) NOPASSWD:ALL/' /etc/sudoers
 
 # ALSA
 tar jxf alsa-lib-1.1.2.tar.bz2
