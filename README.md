@@ -8,7 +8,7 @@ Create three partitions:
 * /dev/sda2, ext4, whatever size minus swap, root
 * /dev/sda3, swap
 
-The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 346 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
+The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 345 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
 
 Run build.
 
