@@ -42,4 +42,4 @@ This script can be used as a reference (in combo with [Linux From Scratch](http:
 
 The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot.
 
-Consult lines 1244-1266 in the build script on how to install fonts.
+Consult lines 1247-1269 in the build script on how to install fonts.
