@@ -10,7 +10,7 @@ Create three partitions:
 
 The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 346 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
 
-Run the script.
+Run build.
 
 The installation can be tripped by an unsuccessful download in the wget command at line 10. After this command is done (you see the terminal output moving again after a long pause during the downloading), a log file is placed in ~/Documents/wgetlog. Check it to see that 911 packages have been downloaded — if not, either because of bad connection or dead repository, stop the script and retry later. Also check to see that the directories linux-firmware and xf86-input-libinput are present in /mnt/sources and not empty when the script starts to compile stuff (terminal messages scrolling by furiously).
 
