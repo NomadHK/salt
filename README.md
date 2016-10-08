@@ -8,11 +8,11 @@ Create three partitions:
 * /dev/sda2, ext4, whatever size minus swap, root
 * /dev/sda3, swap
 
-The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 346 in build. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
+The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 346 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
 
 Run the script.
 
-The installation can be tripped by an unsuccessful download in the long wget command after line 9. After this command is done (you see the terminal output moving again after a long pause during the downloading), a log file is placed in ~/Documents/wgetlog. Check it to see that 911 packages have been downloaded — if not, either because of bad connection or dead repository, stop the script and retry later. Also check to see that the directories linux-firmware and xf86-input-libinput are present in /mnt/sources and not empty when the script starts to compile stuff (terminal messages scrolling by furiously).
+The installation can be tripped by an unsuccessful download in the wget command at line 10. After this command is done (you see the terminal output moving again after a long pause during the downloading), a log file is placed in ~/Documents/wgetlog. Check it to see that 911 packages have been downloaded — if not, either because of bad connection or dead repository, stop the script and retry later. Also check to see that the directories linux-firmware and xf86-input-libinput are present in /mnt/sources and not empty when the script starts to compile stuff (terminal messages scrolling by furiously).
 
 The whole process takes about 7 hours to complete on my computer. Other than the base LFS programs (without Attr, Acl, Libcap, Grub, Libpipeline, Man-DB, Texinfo and any documentation), it also installs Sudo, ALSA, Dhcpcd, Wpa_supplicant, X, Wacom driver, Openbox, Gimp, Urxvt, Xfe, Xfw, Mplayer, Transmission-cli and Chrome. I've also included Wayland and Vulkan for study; if you don't want them, comment out lines 1532-1545 and remove the mention of wayland and vulkan at the end of line 1551. The programs are up-to-date (upstream) as of the first week of Oct 2016. They take up a little less than 1GB of disk space. Idle running uses less than 40MB of RAM; Chrome bumps it up to about 400MB.
 
@@ -40,6 +40,6 @@ Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 
 
 This script can be used as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above examples of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system (sure it takes 7+ hours but you can let it run while you sleep; Microsoft Windows often take as long to update). I updated my script/system within an hour of reading about the Xlib vulnerability a few days ago.
 
-The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot. To generate the same kernel .config, execute lines 1062-1297 in isolation (make sure you strip off the backslashes before the "s and $s if you run it directly as a command in terminal).
+The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot.
 
-Consult lines 1688-1710 on how to install fonts.
+Consult lines 1244-1266 in the build script on how to install fonts.
