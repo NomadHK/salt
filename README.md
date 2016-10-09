@@ -38,7 +38,7 @@ Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 
 
 **If your computer is different from mine or you don't like how SALT is packaged**
 
-Note the focus of this script is building a particular simple flavor of (B)LFS, not automation, nor how you should partition your system, etc. Therefore the script procedure isn't robust — I omit error checkings, stop-and-resume points and so on to avoid muddling the main steps, so you can easily find out how to set up wireless connection for example. To make a scientific analogy, this script is like a theory, and the system it installs is a limited physical proof that it works. So...
+Note the focus of this script is building a particular simple flavor of (B)LFS, not automation, nor how you should partition your system, etc. Therefore the script procedure isn't robust — I omit error checkings, stop-and-resume points and so on to avoid muddling the main steps, so you can easily find out how to set up wireless connection for example. To make a loose scientific analogy, this script is like a theory, and the system it installs is a limited physical proof that it works. So...
 
 Use this script as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above examples of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system. Sure, it's going to take 7+ hours, but you can let it run while you sleep; Microsoft Windows often take as long to update.
 
