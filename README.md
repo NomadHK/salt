@@ -42,6 +42,6 @@ Note the focus of this script is building a particular simple flavor of (B)LFS, 
 
 Use this script as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updates to certain softwares are as simple as replacing a directory in /opt, as the above examples of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system. Sure, it's going to take 7+ hours, but you can let it run while you sleep; Microsoft Windows often take as long to update.
 
-The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot. Just use the same .config after you make mrproper (see line in the build script). You don't have to rebuild the rest of the system.
+The kernel can be updated to a later minor version (4.7.x) by compiling it and replacing the one in /dev/sda1/efi/boot. Just use the same .config after you make mrproper (see line 852 in the build script). You don't have to rebuild the rest of the system unless you update the major version of the kernel; in that case you need to generate a new .config to set up possibly new options.
 
 Consult lines 1247-1269 in the build script on how to install fonts.
