@@ -1080,7 +1080,7 @@ pushd libva-1.7.2
 popd
 rm -rf libva-1.7.2
 
-# Libxml (for Wayland)
+# Libxml (for Wayland and Openbox)
 tar -xf libxml2-2.9.4.tar.gz
 pushd libxml2-2.9.4
 ./configure -q --prefix=/usr --disable-static --with-history --without-debug --without-docbook --without-html --without-http --without-legacy
