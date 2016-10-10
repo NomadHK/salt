@@ -3,12 +3,11 @@ This is a scripted record of my LFS installation. If you have a computer like mi
 
 Boot into Lubuntu LiveCD/USB. Connect to the internet. Download the build script, the kernel .config, and the dowload list.
 
-Create three partitions:
+Create two partitions:
 * /dev/sda1, FAT32, 100MB, to be mounted as esp
-* /dev/sda2, ext4, whatever size minus swap, to be mounted as root
-* /dev/sda3, swap
+* /dev/sda2, ext4, to be mounted as root
 
-The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 63 in .config. Change the timezone at line 345 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
+The host name is compiled into the kernel as "Geronimo". If you want to change it, edit line 71 in .config. Change the timezone at line 345 in the build script. You can check the timezone directory names in the LiveCD's /usr/share/zoneinfo.
 
 Run build.
 
