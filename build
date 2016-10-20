@@ -1616,12 +1616,12 @@ rm -rf gtkmm-2.24.4
 
 # Boost (for Inkscape)
 tar jxf boost_1_62_0.tar.bz2
-pushd boost_1.62_0
+pushd boost_1_62_0
 ./bootstrap.sh --prefix=/usr
 ./b2 stage threading=multi link=shared
 ./b2 install threading=multi link=shared
 popd
-rm -rf boost_1.62_0
+rm -rf boost_1_62_0
 
 # Popt (for Inkscape)
 tar -xf popt-1.16.tar.gz
