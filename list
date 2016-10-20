@@ -43,7 +43,7 @@ http://www.cpan.org/src/5.0/perl-5.24.0.tar.bz2
 https://pkg-config.freedesktop.org/releases/pkg-config-0.29.1.tar.gz
 http://sourceforge.net/projects/procps-ng/files/Production/procps-ng-3.3.12.tar.xz
 http://downloads.sourceforge.net/project/psmisc/psmisc/psmisc-22.21.tar.gz
-ftp://ftp.cwru.edu/pub/bash/readline-7.0.tar.gz
+ftp://ftp.gnu.org/gnu/readline/readline-7.0.tar.gz
 http://ftp.gnu.org/gnu/sed/sed-4.2.2.tar.bz2
 http://pkg-shadow.alioth.debian.org/releases/shadow-4.2.1.tar.xz
 http://www.infodrom.org/projects/sysklogd/download/sysklogd-1.5.1.tar.gz
