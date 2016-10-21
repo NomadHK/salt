@@ -1718,7 +1718,7 @@ sudo chown -R root:root /mnt/opt/chrome
 sudo chmod 4755 /mnt/opt/chrome/chrome-sandbox
 rm -rf /mnt/sources/tmp
 
-sudo rm -rf /mnt/{sources,tools} /mnt/tmp/* /mnt/etc/sudoers.d /mnt/usr/share/{doc,info,man}
+sudo rm -rf /mnt/{sources,tools} /mnt/tmp/* /mnt/etc/sudoers.d /mnt/usr/share/{doc,info,man,gtk-doc}
 sudo rm -f /mnt/usr/lib/lib{bfd,opcodes}.a /mnt/usr/lib/libbz2.a /mnt/usr/lib/lib{com_err,e2p,ext2fs,ss}.a /mnt/usr/lib/libltdl.a /mnt/usr/lib/libfl.a /mnt/usr/lib/libfl_pic.a /mnt/usr/lib/libz.a
 sudo umount /mnt/dev/pts
 sudo umount /mnt/dev /mnt/run /mnt/proc /mnt/sys
