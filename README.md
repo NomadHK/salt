@@ -15,7 +15,7 @@ The installation can be tripped by an unsuccessful download in the wget command 
 
 The whole process takes about 8 hours to complete on my computer. Other than the base LFS programs (without Attr, Acl, Libcap, Grub, Libpipeline, Man-DB, Texinfo and any documentation), it also installs Sudo, ALSA, Dhcpcd, Wpa_supplicant, X, Wacom driver, Openbox, Gimp, Inkscape, Unrar, Unzip, Urxvt, Xfe (with Xfw), Mplayer, Transmission-cli and Chrome. I've also included Wayland and Vulkan for study; if you don't want them, comment out lines 1092-1104 and remove the mention of wayland and vulkan at the end of line 1110.
 
-After boot-up, you can log into the "me" account. Type `startx` to bring up the GUI, and then right-click to bring up the programs menu.
+After boot-up, you can log into the "me" account. Type `startx` to bring up the GUI, and then right-click to bring up the programs menu. Alt+Tab to bring a window to the front.
 
 To adjust screen brightness, go into /sys/class/backlight/intel_backlight and echo (as root, not sudo) a number into "brightness". This number must be less than the one stipulated in "max_brightness". To make the change permanent, edit the corresponding line in /etc/init.d/setup.
 
