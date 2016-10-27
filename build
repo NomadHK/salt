@@ -41,13 +41,13 @@ popd
 rm -rf gcc-6.2.0
 
 # Toolchain Linux headers
-tar xf linux-4.7.9.tar.xz
-pushd linux-4.7.9
+tar xf linux-4.7.10.tar.xz
+pushd linux-4.7.10
 make mrproper
 make INSTALL_HDR_PATH=dest headers_install
 cp -r dest/include/* /tools/include
 popd
-rm -rf linux-4.7.9
+rm -rf linux-4.7.10
 
 # Toolchain Glibc
 tar xf glibc-2.24.tar.xz
@@ -309,14 +309,14 @@ sudo chroot /mnt /tools/bin/env -i TERM=xterm HOME=/root PATH=/bin:/usr/bin:/sbi
 cd /sources
 
 # Linux headers
-tar xf linux-4.7.9.tar.xz
-pushd linux-4.7.9
+tar xf linux-4.7.10.tar.xz
+pushd linux-4.7.10
 make mrproper
 make INSTALL_HDR_PATH=dest headers_install
 find dest/include \( -name .install -o -name ..install.cmd \) -delete
 cp -r dest/include/* /usr/include
 popd
-rm -rf linux-4.7.9
+rm -rf linux-4.7.10
 
 # Glibc
 tar xf glibc-2.24.tar.xz
@@ -845,7 +845,7 @@ popd
 rm -rf vim80 /usr/share/vim"
 
 mkdir /mnt/sources/linux
-tar xf /mnt/sources/linux-4.7.9.tar.xz -C /mnt/sources/linux --strip-components=1
+tar xf /mnt/sources/linux-4.7.10.tar.xz -C /mnt/sources/linux --strip-components=1
 pushd /mnt/sources/linux
 make mrproper
 popd
