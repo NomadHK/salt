@@ -1,4 +1,3 @@
-### SALT1
 This is a scripted record of my LFS installation. If you have a computer like mine (Dell Inspiron 7347, Core i5-4210U) and share my penchant for no-frills geeky system, you may like to try it:
 
 Boot into Lubuntu LiveCD/USB. Connect to the internet. Download the build script, the kernel .config, and the wget list.
@@ -35,7 +34,7 @@ Chrome sometimes refuses to appear. In that case, kill the lurking chrome proces
 
 Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 6`.
 
-**If your computer is different from mine or you don't like how SALT is packaged**
+**If your computer is different from mine or you don't like how this is packaged**
 
 Note the focus of this script is building a particular simple flavor of (B)LFS, not automation, nor how you should partition your system, etc. Thus the script procedure isn't quite robust — I omit error checkings, stop-and-resume points and so on to avoid obfuscating the main steps, so that you can easily find out how to set up wireless connection for example. So...
 
