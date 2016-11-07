@@ -1,0 +1,1719 @@
+#!/bin/bash
+mountpoint -q /mnt || sudo mount /dev/sda2 /mnt
+sudo mkdir -p /mnt/{sources,tools}
+sudo chown 999:999 /mnt/{sources,tools}
+sudo ln -fs /mnt/tools /
+
+sudo ln -fs bash /bin/sh
+sudo apt-get -qqy install bison gawk gcc g++ gettext git make texinfo xfonts-utils
+
+wget -P /mnt/sources -nv -o ~/Documents/wgetlog -i list
+git -C /mnt/sources clone https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git
+git -C /mnt/sources clone https://anongit.freedesktop.org/git/xorg/driver/xf86-input-libinput.git
+
+env -i PATH=/tools/bin:/bin:/usr/bin LC_ALL=POSIX /bin/bash -c "set +h
+umask 022
+cd /mnt/sources
+
+# Toolchain Binutils pass 1
+tar jxf binutils-2.27.tar.bz2
+mkdir binutils-2.27/build
+pushd binutils-2.27/build
+../configure -q --prefix=/tools --with-sysroot=/mnt --with-lib-path=/tools/lib --target=x86_64-lfs-linux-gnu --disable-nls --disable-werror && make && make install
+popd
+rm -rf binutils-2.27
+
+# Toolchain GCC pass 1
+tar jxf gcc-6.2.0.tar.bz2
+mkdir gcc-6.2.0/{build,gmp,mpc,mpfr}
+tar -xf gmp-6.1.1.tar.xz -C gcc-6.2.0/gmp --strip-components=1
+tar -xf mpc-1.0.3.tar.gz -C gcc-6.2.0/mpc --strip-components=1
+tar -xf mpfr-3.1.5.tar.xz -C gcc-6.2.0/mpfr --strip-components=1
+for file in gcc-6.2.0/gcc/config/{linux,i386/linux{,64}}.h
+do
+sed -i -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' -e 's@/lib/@/lib32/@g' -e 's@/lib64/@/lib/@g' \$file
+echo -e '\n#undef STANDARD_STARTFILE_PREFIX_1\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_1 \"/tools/lib/\"\n#define STANDARD_STARTFILE_PREFIX_2 \"\"' >> \$file
+done
+sed -e '/MULTILIB_OSDIRNAMES/s@lib\\\$@lib32\$@' -e '/MULTILIB_OSDIRNAMES/s@lib64\\\$@lib\$@' -e '/MULTILIB_OSDIRNAMES/s@,../lib)@)@' -i gcc-6.2.0/gcc/config/i386/t-linux64
+pushd gcc-6.2.0/build
+../configure -q --target=x86_64-lfs-linux-gnu --prefix=/tools --with-glibc-version=2.24 --with-slibdir=/tools/lib --with-sysroot=/mnt --with-newlib --without-headers --with-local-prefix=/tools --with-native-system-header-dir=/tools/include --disable-nls --disable-shared --disable-multilib --disable-decimal-float --disable-threads --disable-libatomic --disable-libgomp --disable-libmpx --disable-libquadmath --disable-libssp --disable-libvtv --disable-libstdcxx --enable-languages=c,c++ && make && make install
+popd
+rm -rf gcc-6.2.0
+
+# Toolchain Linux headers
+tar xf linux-4.8.6.tar.xz
+pushd linux-4.8.6
+make mrproper
+make INSTALL_HDR_PATH=dest headers_install
+cp -r dest/include/* /tools/include
+popd
+rm -rf linux-4.8.6
+
+# Toolchain Glibc
+tar xf glibc-2.24.tar.xz
+mkdir glibc-2.24/build
+pushd glibc-2.24/build
+../configure -q --prefix=/tools --host=x86_64-lfs-linux-gnu --build=x86_64-pc-linux-gnu --enable-kernel=4.8.0 --with-headers=/tools/include libc_cv_forced_unwind=yes libc_cv_c_cleanup=yes && make && make install
+popd
+rm -rf glibc-2.24
+
+# Toolchain Libstdc++
+tar jxf gcc-6.2.0.tar.bz2
+mkdir gcc-6.2.0/build
+pushd gcc-6.2.0/build
+../libstdc++-v3/configure --host=x86_64-lfs-linux-gnu --prefix=/tools --disable-multilib --disable-nls --disable-libstdcxx-threads --disable-libstdcxx-pch --with-gxx-include-dir=/tools/x86_64-lfs-linux-gnu/include/c++/6.2.0 && make && make install
+popd
+rm -rf gcc-6.2.0
+
+# Toolchain Binutils pass 2
+tar jxf binutils-2.27.tar.bz2
+mkdir binutils-2.27/build
+pushd binutils-2.27/build
+CC=x86_64-lfs-linux-gnu-gcc AR=x86_64-lfs-linux-gnu-ar RANLIB=x86_64-lfs-linux-gnu-ranlib ../configure -q --prefix=/tools --disable-nls --disable-werror --with-lib-path=/tools/lib --with-sysroot && make && make install
+make -C ld clean; make -C ld LIB_PATH=/usr/lib:/lib; cp ld/ld-new /tools/bin
+popd
+rm -rf binutils-2.27
+
+# Toolchain GCC pass 2
+tar jxf gcc-6.2.0.tar.bz2
+cat gcc-6.2.0/gcc/limitx.h gcc-6.2.0/gcc/glimits.h gcc-6.2.0/gcc/limity.h > /mnt/tools/lib/gcc/x86_64-lfs-linux-gnu/6.2.0/include-fixed/limits.h
+mkdir gcc-6.2.0/{build,gmp,mpc,mpfr}
+tar -xf gmp-6.1.1.tar.xz -C gcc-6.2.0/gmp --strip-components=1
+tar -xf mpc-1.0.3.tar.gz -C gcc-6.2.0/mpc --strip-components=1
+tar -xf mpfr-3.1.5.tar.xz -C gcc-6.2.0/mpfr --strip-components=1
+for file in gcc-6.2.0/gcc/config/{linux,i386/linux{,64}}.h
+do
+sed -i -e 's@/lib\(64\)\?\(32\)\?/ld@/tools&@g' -e 's@/usr@/tools@g' -e 's@/lib/@/lib32/@g' -e 's@/lib64/@/lib/@g' \$file
+echo -e '\n#undef STANDARD_STARTFILE_PREFIX_1\n#undef STANDARD_STARTFILE_PREFIX_2\n#define STANDARD_STARTFILE_PREFIX_1 \"/tools/lib/\"\n#define STANDARD_STARTFILE_PREFIX_2 \"\"' >> \$file
+done
+sed -e '/MULTILIB_OSDIRNAMES/s@lib\\\$@lib32\$@' -e '/MULTILIB_OSDIRNAMES/s@lib64\\\$@lib\$@' -e '/MULTILIB_OSDIRNAMES/s@,../lib)@)@' -i gcc-6.2.0/gcc/config/i386/t-linux64
+pushd gcc-6.2.0/build
+CC=x86_64-lfs-linux-gnu-gcc CXX=x86_64-lfs-linux-gnu-g++ AR=x86_64-lfs-linux-gnu-ar RANLIB=x86_64-lfs-linux-gnu-ranlib ../configure -q --prefix=/tools --with-local-prefix=/tools --with-glibc-version=2.24 --with-native-system-header-dir=/tools/include --with-slibdir=/tools/lib --enable-languages=c,c++ --disable-libstdcxx-pch --disable-multilib --disable-bootstrap --disable-libgomp --disable-nls && make && make install
+ln -s gcc /tools/bin/cc
+popd
+rm -rf gcc-6.2.0
+
+# Toolchain Check
+tar -xf check-0.10.0.tar.gz
+pushd check-0.10.0
+PKG_CONFIG= ./configure -q --prefix=/tools && make && make install
+popd
+rm -rf check-0.10.0
+
+# Toolchain Ncurses
+tar -xf ncurses-6.0.tar.gz
+pushd ncurses-6.0
+sed -i s/mawk// configure
+./configure -q --prefix=/tools --with-shared --without-debug --without-ada --without-manpages --without-tests --disable-echo --enable-widec --enable-overwrite && make && make install
+popd
+rm -rf ncurses-6.0
+
+# Toolchain Bash
+tar -xf bash-4.4.tar.gz
+pushd bash-4.4
+./configure -q --prefix=/tools --without-bash-malloc --disable-coprocesses --disable-debugger --disable-help-builtin --disable-net-redirections --disable-separate-helpfiles --disable-profiling --disable-nls --disable-static-link --without-afs && make && make install
+popd
+ln -s bash /tools/bin/sh
+rm -rf bash-4.4
+
+# Toolchain Bzip
+tar -xf bzip2-1.0.6.tar.gz
+pushd bzip2-1.0.6
+make && make PREFIX=/tools install
+popd
+rm -rf bzip2-1.0.6
+
+# Toolchain Coreutils
+tar xf coreutils-8.25.tar.xz
+pushd coreutils-8.25
+./configure -q --prefix=/tools --enable-install-program=hostname --disable-acl --disable-libsmack --disable-xattr --disable-libcap --disable-nls --without-selinux && make && make install
+popd
+rm -rf coreutils-8.25
+
+# Toolchain Diffutils
+tar xf diffutils-3.5.tar.xz
+pushd diffutils-3.5
+./configure -q --prefix=/tools --disable-nls && make && make install
+popd
+rm -rf diffutils-3.5
+
+# Toolchain File
+tar -xf file-5.29.tar.gz
+pushd file-5.29
+./configure -q --prefix=/tools && make && make install
+popd
+rm -rf file-5.29
+
+# Toolchain Findutils
+tar -xf findutils-4.6.0.tar.gz
+pushd findutils-4.6.0
+./configure -q --prefix=/tools --disable-nls --without-selinux && make && make install
+popd
+rm -rf findutils-4.6.0
+
+# Toolchain Gawk
+tar xf gawk-4.1.4.tar.xz
+pushd gawk-4.1.4
+./configure -q --prefix=/tools --disable-nls && make && make install
+popd
+rm -rf gawk-4.1.4
+
+# Toolchain Gettext
+tar xf gettext-0.19.8.1.tar.xz
+pushd gettext-0.19.8.1/gettext-tools
+EMACS="no" ./configure -q --prefix=/tools --disable-shared --disable-java --disable-nls --disable-acl --without-emacs --without-git
+make -C gnulib-lib; make -C intl pluralx.c; make -C src msgfmt; make -C src msgmerge; make -C src xgettext
+cp src/{msgfmt,msgmerge,xgettext} /tools/bin
+popd
+rm -rf gettext-0.19.8.1
+
+# Toolchain Grep
+tar xf grep-2.26.tar.xz
+pushd grep-2.26
+./configure -q --prefix=/tools --disable-nls && make && make install
+popd
+rm -rf grep-2.26
+
+# Toolchain Gzip and M4
+for p in gzip-1.8 m4-1.4.17
+do
+tar xf \${p}.tar.xz
+pushd \$p
+./configure -q --prefix=/tools && make && make install
+popd
+rm -rf \$p
+done
+
+# Toolchain Make
+tar jxf make-4.2.1.tar.bz2
+pushd make-4.2.1
+./configure -q --prefix=/tools --without-guile --disable-nls && make && make install
+popd
+rm -rf make-4.2.1
+
+# Toolchain Patch
+tar xf patch-2.7.5.tar.xz
+pushd patch-2.7.5
+./configure -q --prefix=/tools --disable-xattr && make && make install
+popd
+rm -rf patch-2.7.5
+
+# Toolchain Perl
+tar jxf perl-5.24.0.tar.bz2
+pushd perl-5.24.0
+sh Configure -des -Dprefix=/tools -Dlibs=-lm
+make
+cp perl cpan/podlators/scripts/pod2man /tools/bin
+mkdir -p /tools/lib/perl5/5.24.0
+cp -R lib/* /tools/lib/perl5/5.24.0
+popd
+rm -rf perl-5.24.0
+
+# Toolchain Sed
+tar jxf sed-4.2.2.tar.bz2
+pushd sed-4.2.2
+./configure -q --prefix=/tools --disable-acl --disable-nls --disable-i18n --without-selinux && make && make install
+popd
+rm -rf sed-4.2.2
+
+# Toolchain Tar
+tar xf tar-1.29.tar.xz
+pushd tar-1.29
+./configure -q --prefix=/tools --disable-acl --disable-nls --without-posix-acls --without-xattrs --without-selinux
+make && make install
+popd
+rm -rf tar-1.29
+
+# Toolchain Texinfo
+tar xf texinfo-6.3.tar.xz
+pushd texinfo-6.3
+./configure -q --prefix=/tools --disable-install-warnings --disable-nls && make && make install
+popd
+rm -rf texinfo-6.3
+
+# Toolchain Util-linux
+tar xf util-linux-2.28.2.tar.xz
+pushd util-linux-2.28.2
+./configure -q --prefix=/tools --without-python --disable-makeinstall-chown --without-systemdsystemunitdir \
+--disable-nls --disable-libfdisk --disable-losetup --disable-zramctl --disable-fsck --disable-partx \
+--disable-mountpoint --disable-fallocate --disable-eject --disable-agetty --disable-cramfs --disable-bfs \
+--disable-minix --disable-fdformat --disable-lslogins --disable-wdctl --disable-cal --disable-logger \
+--disable-switch_root --disable-pivot_root --disable-last --disable-utmpdump --disable-mesg --disable-raw \
+--disable-rename --disable-login --disable-nologin --disable-sulogin --disable-wall --disable-pylibmount \
+--disable-pg-bell --without-udev --without-cap-ng --without-user PKG_CONFIG=''
+make && make install
+popd
+rm -rf util-linux-2.28.2
+
+# Toolchain Xz
+tar xf xz-5.2.2.tar.xz
+pushd xz-5.2.2
+./configure -q --prefix=/tools --disable-doc --disable-nls && make && make install
+popd
+rm -rf xz-5.2.2"
+
+rm -rf /mnt/tools/man /mnt/tools/share/{doc,info,man}
+
+sudo mkdir /mnt/{dev,proc,sys,run}
+sudo mknod -m 600 /mnt/dev/console c 5 1
+sudo mknod -m 666 /mnt/dev/null c 1 3
+sudo mount --bind /dev /mnt/dev
+sudo mount -t devpts devpts /mnt/dev/pts -o gid=5,mode=620
+sudo mount -t proc proc /mnt/proc
+sudo mount -t sysfs sysfs /mnt/sys
+sudo mount -t tmpfs tmpfs /mnt/run
+
+sudo mkdir -p /mnt/{bin,etc/sysconfig,home/me,lib/firmware,lib64,mnt,opt,sbin,var/{log,mail,cache,lib/{misc,locate},spool},usr/{libexec,bin,include,lib,sbin,share/{consolefonts,locale,misc,terminfo,zoneinfo}}}
+sudo install -d -m 0750 /mnt/root
+sudo install -d -m 1777 /mnt/tmp /mnt/var/tmp
+sudo ln -s /run /mnt/var/run
+sudo ln -s /run/lock /mnt/var/lock
+sudo ln -s /tools/bin/{bash,cat,echo,pwd,stty} /mnt/bin
+sudo ln -s /tools/bin/perl /mnt/usr/bin
+sudo ln -s /tools/lib/libgcc_s.so{,.1} /mnt/usr/lib
+sudo ln -s /tools/lib/libstdc++.so{,.6} /mnt/usr/lib
+sed s/tools/usr/ /mnt/tools/lib/libstdc++.la | sudo tee /mnt/usr/lib/libstdc++.la > /dev/null
+sudo ln -s bash /mnt/bin/sh
+sudo ln -s /proc/self/mounts /mnt/etc/mtab
+
+sudo cp /mnt/sources/linux-firmware/iwlwifi-7265-17.ucode /mnt/lib/firmware
+echo "ctrl_interface=/run/wpa_supplicant" | sudo tee /mnt/etc/wpa_supplicant.conf > /dev/null
+echo -e "export LANG=en_US.UTF-8\nexport PS1=\"\[\\\e[1;30m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nexport HISTSIZE=50\nexport HISTCONTROL=erasedups\nexport LS_COLORS='di=32:fi=0:ln=36:pi=0:so=0:bd=0:cd=0:or=35:mi=35:ex=33'\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"" | sudo tee /mnt/etc/profile > /dev/null
+echo -e "# Allow command to wrap to next line\nset horizontal-scroll-mode Off\n\n# Enable 8bit input\nset meta-flag On\nset input-meta On\n\n# Turns off 8th bit stripping\nset convert-meta Off\n\n# Keep the 8th bit for display\nset output-meta On\n\n# none, visible or audible\nset bell-style none\n\n# Map escape sequence to readline function\n\"\\\eOd\": backward-word\n\"\\\eOc\": forward-word\n\n# For linux console\n\"\\\e[1~\": beginning-of-line\n\"\\\e[4~\": end-of-line\n\"\\\e[5~\": beginning-of-history\n\"\\\e[6~\": end-of-history\n\"\\\e[3~\": delete-char\n\"\\\e[2~\": quoted-insert\n\n# For xterm\n\"\\\eOH\": beginning-of-line\n\"\\\eOF\": end-of-line" | sudo tee /mnt/etc/inputrc > /dev/null
+echo -e "/bin/sh\n/bin/bash" | sudo tee /mnt/etc/shells > /dev/null
+echo -e "defaults.pcm.!card PCH\ndefaults.ctl.!card PCH" | sudo tee /mnt/etc/asound.conf > /dev/null
+echo -e "set nocompatible\nset backspace=2\nset nowrap\nset tabstop=4\nset shiftwidth=4\nset binary noeol" | sudo tee /mnt/etc/vimrc > /dev/null
+echo -e "root::0:0:root:/root:/bin/bash\nbin:x:1:1:bin:/dev/null:/bin/false\ndaemon:x:6:6:daemon user:/dev/null:/bin/false\nmessagebus:x:18:18:dbus message daemon user:/var/run/dbus:/bin/false\nnobody:x:99:99:unprivileged user:/dev/null:/bin/false\nme::999:999::/home/me:/bin/bash" | sudo tee /mnt/etc/passwd > /dev/null
+echo -e "root:x:0:\nbin:x:1:daemon\nsys:x:2:\nkmem:x:3:\ntape:x:4:\ntty:x:5:\ndaemon:x:6:\nfloppy:x:7:\ndisk:x:8:\nlp:x:9:\ndialout:x:10:\naudio:x:11:me\nvideo:x:12:me\nutmp:x:13:\nusb:x:14:\ncdrom:x:15:\nadm:x:16:\nmessagebus:x:18:\nsystemd-journal:x:23:\ninput:x:24:\nmail:x:34:\nnogroup:x:99:\nusers:x:999:" | sudo tee /mnt/etc/group > /dev/null
+echo -e "PS1=\"\[\\\e[0;31m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"" | sudo tee /mnt/root/.bashrc > /dev/null
+sudo chown -R 999:999 /mnt/home/me
+echo -e "PS1=\"\[\\\e[1;30m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"\nalias play=\"mplayer -msgcharset noconv -msglevel all=0\"" > /mnt/home/me/.bashrc
+
+echo -e "id:3:initdefault:\n\nsi::sysinit:/etc/init.d/setup\n\nl0:0:wait:/etc/init.d/level0\nl6:6:wait:/etc/init.d/level6\n\nsu:S016:once:sulogin\n\n1:3:respawn:agetty tty1 38400\n2:3:respawn:agetty tty2 38400" | sudo tee /mnt/etc/inittab > /dev/null
+sudo mkdir /mnt/etc/init.d
+echo -e "#!/bin/bash\nsource /etc/init.d/setdn\npoweroff -d" | sudo tee /mnt/etc/init.d/level0 > /dev/null
+echo -e "#!/bin/bash\nsource /etc/init.d/setdn\nreboot -d" | sudo tee /mnt/etc/init.d/level6 > /dev/null
+echo -e "alsactl store\nkill \`cat /var/run/dbus/pid\`\nudevadm control -e\nkillall klogd\nkillall5 -15\nkillall5 -9\nmount -o remount,ro /" | sudo tee /mnt/etc/init.d/setdn > /dev/null
+echo -e "#!/bin/bash\nmount -o remount,rw,suid,dev,exec,noatime,nobarrier,async,noblock_validity,nodelalloc,nouser_xattr /\nmount -t tmpfs -o defaults tmpfs /run\nmkdir /run/lock /run/shm\nchmod 1777 /run/shm /run/lock\nmount -t proc -o nosuid,noexec,nodev proc /proc\nmount -t sysfs -o nosuid,noexec,nodev sysfs /sys\nln -sfn /run/shm /dev/shm\n\nmkdir -p /dev/pts\nmount -t devpts -o gid=5,mode=620 devpts /dev/pts\n\necho 500 > /sys/class/backlight/intel_backlight/brightness\nsetfont ter-v24n\nkbdrate -r 20.0 -d 250\nklogd -c 3\nalsactl restore\nmodprobe iwlwifi\nudevd --daemon\nudevadm trigger --action=add\n\nmkdir /var/run/dbus && dbus-daemon --system" | sudo tee /mnt/etc/init.d/setup > /dev/null
+sudo chmod u+x /mnt/etc/init.d/{level0,level6,setup}
+
+mkdir /mnt/sources/terminus_font
+tar -xf /mnt/sources/terminus-font-4.40.tar.gz -C /mnt/sources/terminus_font --strip-components=1
+pushd /mnt/sources/terminus_font
+./configure && make && sudo make install
+popd
+rm -rf /mnt/sources/terminus_font
+sudo mv /usr/local/share/consolefonts/ter-v*.psf.gz /mnt/usr/share/consolefonts
+
+sudo chroot /mnt /tools/bin/env -i TERM=xterm HOME=/root PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin /tools/bin/bash -c "set +h
+cd /sources
+
+# Linux headers
+tar xf linux-4.8.6.tar.xz
+pushd linux-4.8.6
+make mrproper
+make INSTALL_HDR_PATH=dest headers_install
+find dest/include \( -name .install -o -name ..install.cmd \) -delete
+cp -r dest/include/* /usr/include
+popd
+rm -rf linux-4.8.6
+
+# Glibc
+tar xf glibc-2.24.tar.xz
+patch -d glibc-2.24 -Np1 -i ../glibc-2.24-fhs-1.patch
+sed -i /RTLDLIST/d \$(find glibc-2.24 -name ldd-rewrite.sed)
+mkdir glibc-2.24/build
+pushd glibc-2.24/build
+../configure -q --prefix=/usr --enable-kernel=4.8.0 --enable-obsolete-rpc libc_cv_slibdir=/lib && make && make install
+cp ../nscd/nscd.conf /etc/nscd.conf
+mkdir /var/cache/nscd /usr/lib/locale
+localedef -i en_US -f ISO-8859-1 en_US
+localedef -i en_US -f UTF-8 en_US.UTF-8
+ln -s /lib/ld-linux-x86-64.so.2 /lib64
+ln -s /lib/ld-linux-x86-64.so.2 /lib64/ld-lsb-x86-64.so.3
+echo -e \"passwd: files\ngroup: files\nshadow: files\nhosts: files dns\nnetworks: files\nprotocols: files\nservices: files\nethers: files\nrpc: files\" > /etc/nsswitch.conf
+tar -xf ../../tzdata2016i.tar.gz
+mkdir -p /usr/share/zoneinfo/{posix,right}
+for tz in etcetera southamerica northamerica europe africa antarctica asia australasia backward pacificnew systemv
+do
+zic -L /dev/null -d /usr/share/zoneinfo -y \"sh yearistype.sh\" \$tz
+zic -L /dev/null -d /usr/share/zoneinfo/posix -y \"sh yearistype.sh\" \$tz
+zic -L leapseconds -d /usr/share/zoneinfo/right -y \"sh yearistype.sh\" \$tz
+done
+cp zone.tab zone1970.tab iso3166.tab /usr/share/zoneinfo
+zic -d /usr/share/zoneinfo -p America/New_York
+ln -s /usr/share/zoneinfo/Asia/Hong_Kong /etc/localtime
+popd
+rm -rf glibc-2.24
+rm /tools/bin/ld /tools/x86_64-pc-linux-gnu/bin/ld
+mv /tools/bin/{ld-new,ld}
+ln -s /tools/bin/ld /tools/x86_64-pc-linux-gnu/bin/ld
+gcc -dumpspecs | sed -e 's@/tools@@g' -e '/\*startfile_prefix_spec:/{n;s@.*@/usr/lib/ @}' -e '/\*cpp:/{n;s@\$@ -isystem /usr/include@}' > /tools/lib/gcc/x86_64-pc-linux-gnu/6.2.0/specs
+
+# Zlib
+tar xf zlib-1.2.8.tar.xz
+pushd zlib-1.2.8
+./configure --prefix=/usr && make && make install
+mv /usr/lib/libz.so.* /lib
+ln -sf /lib/libz.so.1.2.8 /usr/lib/libz.so
+popd
+rm -rf zlib-1.2.8
+
+# File
+tar -xf file-5.29.tar.gz
+pushd file-5.29
+sed -i '7592s/usr/tools/' configure
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf file-5.29
+
+# Binutils
+tar jxf binutils-2.27.tar.bz2
+mkdir binutils-2.27/build
+pushd binutils-2.27/build
+../configure -q --prefix=/usr --enable-shared --disable-werror --disable-nls
+make tooldir=/usr && make tooldir=/usr install
+popd
+rm -rf binutils-2.27
+
+# GMP
+tar xf gmp-6.1.1.tar.xz
+pushd gmp-6.1.1
+./configure -q --prefix=/usr --enable-cxx --disable-static && make && make install
+popd
+rm -rf gmp-6.1.1
+
+# MPFR
+tar xf mpfr-3.1.5.tar.xz
+pushd mpfr-3.1.5
+./configure -q --prefix=/usr --disable-static --enable-thread-safe && make && make install
+popd
+rm -rf mpfr-3.1.5
+
+# MPC
+tar -xf mpc-1.0.3.tar.gz
+pushd mpc-1.0.3
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf mpc-1.0.3
+
+# GCC
+tar jxf gcc-6.2.0.tar.bz2
+for f in gcc-6.2.0/gcc/config/{linux,i386/linux{,64}}.h
+do
+sed -e 's@/lib/@/lib32/@g' -e 's@/lib64/@/lib/@g' -i \$f
+done
+sed -e '/MULTILIB_OSDIRNAMES/s@lib\\\$@lib32\$@' -e '/MULTILIB_OSDIRNAMES/s@lib64\\\$@lib\$@' -e '/MULTILIB_OSDIRNAMES/s@,../lib)@)@' -i gcc-6.2.0/gcc/config/i386/t-linux64
+mkdir gcc-6.2.0/build
+pushd gcc-6.2.0/build
+SED=sed ../configure -q --prefix=/usr --enable-languages=c,c++ --disable-multilib --disable-bootstrap --with-system-zlib --with-glibc-version=2.24 --disable-nls
+make && make install
+ln -s /usr/bin/cpp /lib
+ln -s gcc /usr/bin/cc
+install -dm755 /usr/lib/bfd-plugins
+ln -s /usr/libexec/gcc/x86_64-pc-linux-gnu/6.2.0/liblto_plugin.so.0.0.0 /usr/lib/bfd-plugins/
+mkdir -p /usr/share/gdb/auto-load/usr/lib
+mv /usr/lib/*gdb.py /usr/share/gdb/auto-load/usr/lib
+popd
+rm -rf gcc-6.2.0
+
+# Bzip2
+tar -xf bzip2-1.0.6.tar.gz
+pushd bzip2-1.0.6
+sed -i -e 's@\(ln -s -f \)\$(PREFIX)/bin/@\1@' Makefile
+make -f Makefile-libbz2_so && make clean && make && make PREFIX=/usr install
+cp bzip2-shared /bin/bzip2
+cp -a libbz2.so* /lib
+ln -s /lib/libbz2.so.1.0 /usr/lib/libbz2.so
+rm /usr/bin/{bunzip2,bzcat,bzip2}
+ln -s bzip2 /bin/bunzip2
+ln -s bzip2 /bin/bzcat
+popd
+rm -rf bzip2-1.0.6 /usr/man
+
+# Pkg-config
+tar -xf pkg-config-0.29.1.tar.gz
+pushd pkg-config-0.29.1
+./configure -q --prefix=/usr --with-internal-glib --disable-host-tool --disable-compile-warnings --disable-debug
+make && make install
+popd
+rm -rf pkg-config-0.29.1
+
+# Ncurses
+tar -xf ncurses-6.0.tar.gz
+pushd ncurses-6.0
+sed -i '/LIBTOOL_INSTALL/d' c++/Makefile.in
+./configure -q --prefix=/usr --without-ada --without-manpages --with-shared --without-debug --without-normal --enable-pc-files --enable-widec --without-tests --disable-echo
+make && make install
+mv /usr/lib/libncursesw.so.6* /lib
+ln -sf /lib/libncursesw.so.6.0 /usr/lib/libncursesw.so
+for lib in ncurses form panel menu
+do
+rm -f /usr/lib/lib\${lib}.so
+echo \"INPUT(-l\${lib}w)\" > /usr/lib/lib\${lib}.so
+ln -sf \${lib}w.pc /usr/lib/pkgconfig/\${lib}.pc
+done
+rm -f /usr/lib/libcursesw.so
+echo 'INPUT(-lncursesw)' > /usr/lib/libcursesw.so
+ln -sf libncurses.so /usr/lib/libcurses.so
+popd
+rm -rf ncurses-6.0
+
+# Sed
+tar jxf sed-4.2.2.tar.bz2
+pushd sed-4.2.2
+./configure -q --prefix=/usr --bindir=/bin --disable-acl --disable-nls --disable-i18n --without-selinux
+make && make install
+popd
+rm -rf sed-4.2.2
+
+# Shadow
+tar xf shadow-4.2.1.tar.xz
+pushd shadow-4.2.1
+sed -i 's/groups\$(EXEEXT) //' src/Makefile.in
+sed -i -e 's@#ENCRYPT_METHOD DES@ENCRYPT_METHOD SHA512@' -e 's@/var/spool/mail@/var/mail@' -e '/FAILLOG_ENAB/s/yes/no/' -e '/LASTLOG_ENAB/s/yes/no/' -e '/MAIL_CHECK_ENAB/s/yes/no/' -e '/OBSCURE_CHECKS_ENAB/s/yes/no/' -e '/PORTTIME_CHECKS_ENAB/s/yes/no/' -e '/QUOTAS_ENAB/s/yes/no/' -e '/SYSLOG_SU_ENAB/s/yes/no/' -e '/SYSLOG_SG_ENAB/s/yes/no/' -e '/^CONSOLE/s/CONSOLE\t/#CONSOLE/' -e '/^MOTD_FILE/s/^/#/' -e '/FTMP_FILE/s/^/#/' -e '/^NOLOGINS_FILE/s/^/#/' -e '/^HUSHLOGIN_FILE/s/^/#/' -e '/ENV_PATH/s/\$/:\/sbin:\/usr\/sbin/' -e '/PASS_ALWAYS_WARN/s/yes/no/' -e '/ENVIRON_FILE/s/^/#/' -e '/CREATE_HOME/s/#//' -e '\$d' etc/login.defs
+sed -i -e 's/1000/999/' -e 's/yes/no/' etc/useradd
+./configure -q --sysconfdir=/etc --with-group-name-max-length=32 --disable-nls --without-audit --without-libpam --without-selinux --without-acl --without-attr
+make && make install
+mv /usr/bin/passwd /bin
+popd
+rm -rf shadow-4.2.1
+
+# Psmisc
+tar -xf psmisc-22.21.tar.gz
+pushd psmisc-22.21
+./configure -q --prefix=/usr --disable-selinux --disable-nls && make && make install
+mv /usr/bin/fuser /bin
+mv /usr/bin/killall /bin
+popd
+rm -rf psmisc-22.21
+
+# Iana-etc
+tar jxf iana-etc-2.30.tar.bz2
+pushd iana-etc-2.30
+make && make install
+popd
+rm -rf iana-etc-2.30
+
+# M4
+tar xf m4-1.4.17.tar.xz
+pushd m4-1.4.17
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf m4-1.4.17
+
+# Bison
+tar xf bison-3.0.4.tar.xz
+pushd bison-3.0.4
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf bison-3.0.4
+
+# Flex
+tar -xf flex-2.6.2.tar.gz
+pushd flex-2.6.2
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf flex-2.6.2
+ln -s flex /usr/bin/lex
+
+# Grep
+tar xf grep-2.26.tar.xz
+pushd grep-2.26
+./configure -q --prefix=/usr --bindir=/bin --disable-nls && make && make install
+popd
+rm -rf grep-2.26
+
+# Readline
+tar -xf readline-7.0.tar.gz
+pushd readline-7.0
+./configure -q --prefix=/usr --disable-static && make SHLIB_LIBS=-lncurses && make SHLIB_LIBS=-lncurses install
+mv /usr/lib/lib{readline,history}.so.* /lib
+ln -sf /lib/libreadline.so.7.0 /usr/lib/libreadline.so
+ln -sf /lib/libhistory.so.7.0 /usr/lib/libhistory.so
+popd
+rm -rf readline-7.0
+
+# Bash
+tar -xf bash-4.4.tar.gz
+pushd bash-4.4
+./configure -q --prefix=/usr --without-bash-malloc --with-installed-readline --disable-debugger --disable-disabled-builtins --disable-help-builtin --disable-net-redirections --disable-separate-helpfiles --disable-coprocesses --disable-restricted --disable-profiling --disable-nls --disable-static-link --without-afs
+make && make install && mv /usr/bin/bash /bin
+popd
+rm -rf bash-4.4"
+
+sudo chroot /mnt /tools/bin/env -i TERM=xterm HOME=/root PATH=/bin:/usr/bin:/sbin:/usr/sbin:/tools/bin /bin/bash -c "set +h
+cd /sources
+
+# Bc
+tar jxf bc-1.06.95.tar.bz2
+patch -d bc-1.06.95 -Np1 -i ../bc-1.06.95-memory_leak-1.patch
+pushd bc-1.06.95
+./configure -q --prefix=/usr --with-readline --mandir=/usr/share/man --infodir=/usr/share/info
+make && make install
+popd
+rm -rf bc-1.06.95
+
+# Libtool
+tar xf libtool-2.4.6.tar.xz
+pushd libtool-2.4.6
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf libtool-2.4.6
+
+# GDBM
+tar -xf gdbm-1.12.tar.gz
+pushd gdbm-1.12
+./configure -q --prefix=/usr --disable-static --enable-libgdbm-compat --disable-nls
+make && make install
+popd
+rm -rf gdbm-1.12
+
+# Gperf
+tar -xf gperf-3.0.4.tar.gz
+pushd gperf-3.0.4
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf gperf-3.0.4
+
+# Expat
+tar jxf expat-2.2.0.tar.bz2
+pushd expat-2.2.0
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf expat-2.2.0
+
+# Inetutils
+tar xf inetutils-1.9.4.tar.xz
+pushd inetutils-1.9.4
+./configure -q --prefix=/usr --localstatedir=/var --disable-logger --disable-whois --disable-rcp --disable-rexec --disable-rlogin --disable-rsh --disable-servers
+make && make install
+mv /usr/bin/{hostname,ping,ping6,traceroute} /bin
+mv /usr/bin/ifconfig /sbin
+popd
+rm -rf inetutils-1.9.4
+
+# Perl
+echo -e \"127.0.0.1 localhost\n::1 localhost\" > /etc/hosts
+tar jxf perl-5.24.0.tar.bz2
+pushd perl-5.24.0
+export BUILD_ZLIB=False
+export BUILD_BZIP2=0
+bash Configure -des -Dprefix=/usr -Dvendorprefix=/usr -Dman1dir=/usr/share/man/man1 -Dman3dir=/usr/share/man/man3 -Dpager=\"/usr/bin/less -isR\" -Duseshrplib
+make && make install
+unset BUILD_ZLIB BUILD_BZIP2
+popd
+rm -rf perl-5.24.0
+
+# XML parser
+tar -xf XML-Parser-2.44_01.tar.gz
+pushd XML-Parser-2.44_01
+perl Makefile.PL && make && make install
+popd
+rm -rf XML-Parser-2.44_01
+
+# Intltool
+tar -xf intltool-0.51.0.tar.gz
+pushd intltool-0.51.0
+sed -i 's:\\\\\${:\\\\\$\\\\{:' intltool-update.in
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf intltool-0.51.0
+
+# Autoconf
+tar xf autoconf-2.69.tar.xz
+pushd autoconf-2.69
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf autoconf-2.69
+
+# Automake
+tar xf automake-1.15.tar.xz
+pushd automake-1.15
+sed -i 's:/\\\\\${:/\\\\\$\\\\{:' bin/automake.in
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf automake-1.15
+
+# Xz
+tar xf xz-5.2.2.tar.xz
+pushd xz-5.2.2
+sed -e '/mf\.buffer = NULL/a next->coder->mf.size = 0;' -i src/liblzma/lz/lz_encoder.c
+./configure -q --prefix=/usr --disable-static --disable-doc --disable-nls
+make && make install
+mv /usr/bin/{lzma,unlzma,lzcat,xz,unxz,xzcat} /bin
+mv /usr/lib/liblzma.so.* /lib
+ln -sf /lib/liblzma.so.5.2.2 /usr/lib/liblzma.so
+popd
+rm -rf xz-5.2.2
+
+# Kmod
+tar xf kmod-23.tar.xz
+pushd kmod-23
+./configure -q --prefix=/usr --bindir=/bin --sysconfdir=/etc --with-rootlibdir=/lib --with-xz --with-zlib --disable-manpages --disable-test-modules --disable-logging --disable-gtk-doc-html
+make && make install
+for target in depmod insmod lsmod modinfo modprobe rmmod; do
+ln -s /bin/kmod /sbin/\$target
+done
+ln -s kmod /bin/lsmod
+popd
+rm -rf kmod-23
+
+# Gettext
+tar xf gettext-0.19.8.1.tar.xz
+pushd gettext-0.19.8.1
+./configure -q --prefix=/usr --disable-static --disable-java --disable-nls --disable-acl --without-emacs --without-git
+make && make install
+chmod 0755 /usr/lib/preloadable_libintl.so
+popd
+rm -rf gettext-0.19.8.1
+
+# Procps-ng
+tar xf procps-ng-3.3.12.tar.xz
+pushd procps-ng-3.3.12
+./configure -q --prefix=/usr --exec-prefix= --libdir=/usr/lib --disable-static --disable-kill --disable-nls
+make && make install
+mv /usr/lib/libprocps.so.* /lib
+ln -sf /lib/libprocps.so.6.0.0 /usr/lib/libprocps.so
+popd
+rm -rf procps-ng-3.3.12
+
+# E2fsprogs
+tar xf e2fsprogs-1.43.3.tar.xz
+mkdir e2fsprogs-1.43.3/build
+pushd e2fsprogs-1.43.3/build
+LIBS=-L/tools/lib CFLAGS=-I/tools/include PKG_CONFIG_PATH=/tools/lib/pkgconfig ../configure -q --prefix=/usr --bindir=/bin --with-root-prefix='' --enable-elf-shlibs --disable-libblkid --disable-libuuid --disable-uuidd --disable-fsck --disable-nls --disable-testio-debug --disable-backtrace --disable-debugfs --disable-imager --disable-resizer --disable-fuse2fs --disable-tdb
+make && make install && make install-libs
+chmod u+w /usr/lib/{libcom_err,libe2p,libext2fs,libss}.a
+popd
+rm -rf e2fsprogs-1.43.3
+
+# Coreutils
+tar xf coreutils-8.25.tar.xz
+patch -d coreutils-8.25 -Np1 -i ../coreutils-8.25-i18n-2.patch
+pushd coreutils-8.25
+FORCE_UNSAFE_CONFIGURE=1 ./configure -q --prefix=/usr --disable-acl --disable-libsmack --disable-xattr --disable-libcap --disable-nls --without-selinux --enable-no-install-program=kill,uptime
+FORCE_UNSAFE_CONFIGURE=1 make
+make install
+mv /usr/bin/{cat,chgrp,chmod,chown,cp,date,dd,df,echo} /bin
+mv /usr/bin/{false,ln,ls,mkdir,mknod,mv,pwd,rm} /bin
+mv /usr/bin/{rmdir,stty,sync,true,uname} /bin
+mv /usr/bin/chroot /usr/sbin
+mv /usr/bin/{head,sleep,nice,test,[} /bin
+popd
+rm -rf coreutils-8.25
+
+# Diffutils
+tar xf diffutils-3.5.tar.xz
+pushd diffutils-3.5
+sed -i 's:= @mkdir_p@:= /bin/mkdir -p:' po/Makefile.in.in
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf diffutils-3.5
+
+# Gawk
+tar xf gawk-4.1.4.tar.xz
+pushd gawk-4.1.4
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf gawk-4.1.4
+
+# Findutils
+tar -xf findutils-4.6.0.tar.gz
+pushd findutils-4.6.0
+./configure -q --prefix=/usr --localstatedir=/var/lib/locate --disable-nls --without-selinux
+make && make install
+mv /usr/bin/find /bin
+sed -i 's|find:=\${BINDIR}|find:=/bin|' /usr/bin/updatedb
+popd
+rm -rf findutils-4.6.0
+
+# Groff
+tar -xf groff-1.22.3.tar.gz
+pushd groff-1.22.3
+PAGE=A4 ./configure -q --prefix=/usr && make && make install
+popd
+rm -rf groff-1.22.3
+
+# Less
+tar -xf less-481.tar.gz
+pushd less-481
+./configure -q --prefix=/usr --sysconfdir=/etc --with-editor=/usr/bin/vim
+make && make install
+popd
+rm -rf less-481
+
+# Gzip
+tar xf gzip-1.8.tar.xz
+pushd gzip-1.8
+./configure -q --prefix=/usr && make && make install
+popd
+mv /usr/bin/gzip /bin
+rm -rf gzip-1.8
+
+# Iproute2
+tar xf iproute2-4.8.0.tar.xz
+pushd iproute2-4.8.0
+sed -i /ARPD/d Makefile
+sed -i s/arpd.8// man/man8/Makefile
+rm doc/arpd.sgml
+sed -i 's/m_ipt.o//' tc/Makefile
+make && make DOCDIR=/usr/share/doc/iproute2-4.8.0 install
+popd
+rm -rf iproute2-4.8.0
+
+# Kbd
+tar xf kbd-2.0.3.tar.xz
+patch -d kbd-2.0.3 -Np1 -i ../kbd-2.0.3-backspace-1.patch
+pushd kbd-2.0.3
+sed -i 's/\(RESIZECONS_PROGS=\)yes/\1no/g' configure
+sed -i 's/resizecons.8 //' docs/man/man8/Makefile.in
+PKG_CONFIG_PATH=/tools/lib/pkgconfig ./configure -q --prefix=/usr --disable-nls --disable-vlock
+make && make install
+popd
+rm -rf kbd-2.0.3 /usr/share/consolefonts/{[1-9a-su-zA-Z]*,t[!e]*}
+
+# Make
+tar jxf make-4.2.1.tar.bz2
+pushd make-4.2.1
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf make-4.2.1
+
+# Patch
+tar xf patch-2.7.5.tar.xz
+pushd patch-2.7.5
+./configure -q --prefix=/usr --disable-xattr && make && make install
+popd
+rm -rf patch-2.7.5
+
+# Sysklogd
+tar -xf sysklogd-1.5.1.tar.gz
+pushd sysklogd-1.5.1
+sed -i '/Error loading kernel symbols/{n;n;d}' ksym_mod.c
+sed -i 's/union wait/int/' syslogd.c
+make && make BINDIR=/sbin install
+popd
+rm -rf sysklogd-1.5.1
+echo -e \"auth,authpriv.* -/var/log/auth.log\n*.*;auth,authpriv.none -/var/log/sys.log\ndaemon.* -/var/log/daemon.log\nkern.* -/var/log/kern.log\nmail.* -/var/log/mail.log\nuser.* -/var/log/user.log\n*.emerg *\" > /etc/syslog.conf
+
+# Sysvinit
+tar jxf sysvinit-2.88dsf.tar.bz2
+patch -d sysvinit-2.88dsf -Np1 -i ../sysvinit-2.88dsf-consolidated-1.patch
+pushd sysvinit-2.88dsf
+make -C src && make -C src install
+popd
+rm -rf sysvinit-2.88dsf
+
+# Eudev
+tar -xf eudev-3.2.tar.gz
+pushd eudev-3.2
+sed -r -i 's|/usr(/bin/test)|\\1|' test/udev-test.pl
+echo -e \"HAVE_BLKID=1\nBLKID_LIBS=\\\"-lblkid\\\"\nBLKID_CFLAGS=\\\"-I/tools/include\\\"\" > config.cache
+./configure -q --prefix=/usr --bindir=/sbin --sbindir=/sbin --libdir=/usr/lib --sysconfdir=/etc --libexecdir=/lib --with-rootprefix= --with-rootlibdir=/lib --disable-manpages --disable-selinux --disable-static --config-cache
+LIBRARY_PATH=/tools/lib make
+mkdir -p /lib/udev/rules.d /etc/udev/rules.d
+make LD_LIBRARY_PATH=/tools/lib install
+LD_LIBRARY_PATH=/tools/lib udevadm hwdb --update
+popd
+rm -rf eudev-3.2
+
+# Util-linux
+mkdir /var/lib/hwclock
+tar xf util-linux-2.28.2.tar.xz
+pushd util-linux-2.28.2
+./configure -q ADJTIME_PATH=/var/lib/hwclock/adjtime --disable-chfn-chsh --disable-login --disable-nologin --disable-su --disable-setpriv \
+--disable-runuser --disable-zramctl --disable-cramfs --disable-lslogins --disable-wdctl --disable-switch_root --disable-pivot_root --disable-last \
+--disable-raw --disable-pylibmount --disable-static --disable-nls --disable-eject --disable-bfs --disable-minix --disable-fdformat --disable-utmpdump \
+--disable-mesg --disable-wall --disable-pg-bell --without-python --without-selinux --without-audit --without-cap-ng --without-smack --without-systemd \
+--without-systemdsystemunitdir --without-user
+make && make install
+popd
+rm -rf util-linux-2.28.2
+
+# Tar
+tar xf tar-1.29.tar.xz
+pushd tar-1.29
+FORCE_UNSAFE_CONFIGURE=1 ./configure -q --prefix=/usr --bindir=/bin --disable-acl --disable-nls --without-selinux --without-xattrs --without-posix-acls
+make && make install
+popd
+rm -rf tar-1.29
+
+# Vim
+tar jxf vim-8.0.tar.bz2
+pushd vim80
+echo '#define SYS_VIMRC_FILE \"/etc/vimrc\"' >> src/feature.h
+./configure -q --prefix=/usr --disable-darwin --disable-smack --disable-selinux --disable-xsmp --disable-xsmp-interact --disable-netbeans --disable-channel --enable-gui=no --disable-gtktest --disable-acl --disable-gpm --disable-sysmouse --disable-nls
+make && make install
+popd
+rm -rf vim80 /usr/share/vim"
+
+mkdir /mnt/sources/linux
+tar xf /mnt/sources/linux-4.8.6.tar.xz -C /mnt/sources/linux --strip-components=1
+pushd /mnt/sources/linux
+make mrproper
+popd
+cp .config /mnt/sources/linux
+
+sudo chroot /mnt /usr/bin/env -i TERM=xterm HOME=/root PATH=/bin:/usr/bin:/sbin:/usr/sbin /bin/bash -c "cd /sources
+# Kernel
+pushd linux
+make && make modules_install
+mountpoint -q /mnt
+if [ \$? -ne 0 ]
+then
+mount /dev/sda1 /mnt
+fi
+mkdir -p /mnt/efi/boot
+rm -f /mnt/efi/boot/bootx64.efi
+mv arch/x86/boot/bzImage /mnt/efi/boot/bootx64.efi; umount /mnt
+popd
+rm -rf linux
+
+# Sudo
+tar -xf sudo-1.8.18p1.tar.gz
+pushd sudo-1.8.18p1
+./configure -q --prefix=/usr --libexecdir=/usr/lib --with-secure-path --disable-root-mailer --disable-root-sudo --disable-hardening --disable-nls --disable-pam-session --disable-sia --without-lecture --with-editor=/usr/bin/vim --without-interfaces --without-sendmail
+make && make install && ln -sf libsudo_util.so.0.0.0 /usr/lib/sudo/libsudo_util.so.0
+popd
+rm -rf sudo-1.8.18p1
+sed -i 's/root ALL=(ALL) ALL/me ALL=(ALL) ALL/' /etc/sudoers
+
+# ALSA
+tar jxf alsa-lib-1.1.2.tar.bz2
+pushd alsa-lib-1.1.2
+./configure -q --disable-aload --disable-rawmidi --disable-ucm --disable-topology --disable-alisp --disable-old-symbols --disable-python --with-max-cards=2
+make && make install
+popd
+rm -rf alsa-lib-1.1.2
+tar jxf alsa-utils-1.1.2.tar.bz2
+pushd alsa-utils-1.1.2
+./configure -q --disable-nls --disable-alsaconf --disable-bat --disable-xmlto --disable-alsatest --disable-nls --disable-alsaloop --with-curses=ncursesw
+make && make install
+popd
+rm -rf alsa-utils-1.1.2
+
+# OpenSSL (for Wpa_supplicant and Xorg-server)
+tar -xf openssl-1.1.0b.tar.gz
+pushd openssl-1.1.0b
+./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib shared zlib-dynamic no-rc5 no-idea
+make depend && make
+sed -i 's/ libcrypto.a//;s/ libssl.a//' Makefile
+make MANDIR=/usr/share/man install
+popd
+rm -rf openssl-1.1.0b
+
+# Dhcpcd
+tar xf dhcpcd-6.11.5.tar.xz
+pushd dhcpcd-6.11.5
+./configure --libexecdir=/lib/dhcpcd --dbdir=/var/lib/dhcpcd && make && make install
+popd
+rm -rf dhcpcd-6.11.5
+sed -i 's/persistent/#persistent/' /etc/dhcpcd.conf
+echo -e \"nohook test\nnohook dump\" >> /etc/dhcpcd.conf
+sed -i s/DEPARTED/STOP/ /usr/share/dhcpcd/hooks/10-wpa_supplicant
+ln -s /usr/share/dhcpcd/hooks/10-wpa_supplicant /lib/dhcpcd/dhcpcd-hooks/
+
+# Libnl (for Wpa_supplicant)
+tar -xf libnl-3.2.28.tar.gz
+pushd libnl-3.2.28
+./configure -q --sysconfdir=/etc --prefix=/usr --disable-static --disable-cli --disable-debug
+make && make install
+popd
+rm -rf libnl-3.2.28
+
+# Wpa_supplicant
+tar -xf wpa_supplicant-2.6.tar.gz
+pushd wpa_supplicant-2.6/wpa_supplicant
+echo -e \"CONFIG_BACKEND=file\nCONFIG_CTRL_IFACE=y\nCONFIG_NO_STDOUT_DEBUG=y\nCONFIG_DRIVER_NL80211=y\nCONFIG_EAP_GTC=y\nCONFIG_EAP_LEAP=y\nCONFIG_EAP_MD5=y\nCONFIG_EAP_MSCHAPV2=y\nCONFIG_EAP_OTP=y\nCONFIG_EAP_PEAP=y\nCONFIG_EAP_TLS=y\nCONFIG_EAP_TTLS=y\nCONFIG_IPV6=y\nCONFIG_LIBNL32=y\nCONFIG_PEERKEY=y\nCONFIG_READLINE=y\nCFLAGS += -I/usr/include/libnl3\" > .config
+make BINDIR=/sbin LIBDIR=/lib
+install -m755 wpa_{cli,passphrase,supplicant} /sbin
+popd
+rm -rf wpa_supplicant-2.6
+
+# Xorg util-macros
+tar jxf util-macros-1.19.0.tar.bz2
+pushd util-macros-1.19.0
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var && make install
+popd
+rm -rf util-macros-1.19.0
+
+# Xorg protocol headers
+for file in bigreqsproto-1.1.2 compositeproto-0.4.2 damageproto-1.2.1 dri2proto-2.8 dri3proto-1.0 fixesproto-5.0 fontsproto-2.1.3 glproto-1.4.17 inputproto-2.3.2 kbproto-1.0.7 presentproto-1.0 randrproto-1.5.0 recordproto-1.14.2 renderproto-0.11.1 resourceproto-1.2.0 scrnsaverproto-1.2.2 videoproto-2.3.3 xcmiscproto-1.2.2 xextproto-7.3.0 xf86vidmodeproto-2.3.1 xineramaproto-1.2.1 xproto-7.0.31
+do
+tar jxf \${file}.tar.bz2
+pushd \$file
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var && make install
+popd
+rm -rf \$file
+done
+
+# LibXau
+tar jxf libXau-1.0.8.tar.bz2
+pushd libXau-1.0.8
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static && make && make install
+popd
+rm -rf libXau-1.0.8
+
+# Libffi (for Python and Wayland)
+tar -xf libffi-3.2.1.tar.gz
+pushd libffi-3.2.1
+sed -e '/^includesdir/ s/\$(libdir).*\$/\$(includedir)/' -i include/Makefile.in
+sed -e '/^includedir/ s/=.*\$/=@includedir@/' -e 's/^Cflags: -I\${includedir}/Cflags:/' -i libffi.pc.in
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf libffi-3.2.1
+
+# Python (for XCB-proto)
+tar xf Python-2.7.12.tar.xz
+pushd Python-2.7.12
+./configure -q --prefix=/usr --enable-shared --enable-unicode=ucs4 --with-system-expat --with-system-ffi --without-doc-strings
+make && make install && chmod 755 /usr/lib/libpython2.7.so.1.0
+popd
+rm -rf Python-2.7.12
+
+# XCB-proto
+tar jxf xcb-proto-1.12.tar.bz2
+pushd xcb-proto-1.12
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+make install
+popd
+rm -rf xcb-proto-1.12
+
+# Libxcb
+tar jxf libxcb-1.12.tar.bz2
+pushd libxcb-1.12
+sed -i s/pthread-stubs// configure
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-devel-docs --disable-composite --disable-record --disable-screensaver --disable-xevie --disable-xfree86-dri --enable-xinput --disable-xinerama --disable-xtest --disable-xvmc
+make && make install
+popd
+rm -rf libxcb-1.12
+
+# Freetype (for Fontconfig)
+tar jxf freetype-2.7.tar.bz2
+pushd freetype-2.7
+sed -ri 's:.*(AUX_MODULES.*valid):\1:' modules.cfg
+sed -r 's:.*(#.*SUBPIXEL_(RENDERING|HINTING 2)) .*:\1:g' -i include/freetype/config/ftoption.h
+./configure --prefix=/usr --disable-static --without-old-mac-fonts --without-fsspec --without-fsref --without-quickdraw-toolbox --without-quickdraw-carbon --without-ats
+make && make install
+popd
+rm -rf freetype-2.7
+
+# Glib (for Harfbuzz)
+tar xf glib-2.51.0.tar.xz
+pushd glib-2.51.0
+./configure -q --prefix=/usr --enable-debug=no --disable-selinux --disable-xattr --disable-gtk-doc-html --disable-man --disable-fam --with-pcre=internal
+make && make install
+popd
+rm -rf glib-2.51.0
+
+# Harfbuzz (for Freetype)
+tar jxf harfbuzz-1.3.3.tar.bz2
+pushd harfbuzz-1.3.3
+./configure -q --prefix=/usr --disable-gtk-doc-html && make && make install
+popd
+rm -rf harfbuzz-1.3.3
+
+# Freetype reinstall incorporating Harfbuzz
+tar jxf freetype-2.7.tar.bz2
+pushd freetype-2.7
+sed -ri 's:.*(AUX_MODULES.*valid):\1:' modules.cfg
+sed -r 's:.*(#.*SUBPIXEL_(RENDERING|HINTING 2)) .*:\1:g' -i include/freetype/config/ftoption.h
+./configure --prefix=/usr --disable-static --without-old-mac-fonts --without-fsspec --without-fsref --without-quickdraw-toolbox --without-quickdraw-carbon --without-ats
+make && make install
+popd
+rm -rf freetype-2.7
+
+# Fontconfig (for Xorg libs)
+tar jxf fontconfig-2.12.1.tar.bz2
+pushd fontconfig-2.12.1
+./configure -q --disable-docs --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+make && make install
+popd
+rm -rf fontconfig-2.12.1
+
+# Font-util (for libfontenc in Xorg libs)
+tar jxf font-util-1.3.1.tar.bz2
+pushd font-util-1.3.1
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var && make && make install
+popd
+rm -rf font-util-1.3.1
+
+# Xorg libs
+for file in xtrans-1.3.5 libX11-1.6.4 libXext-1.3.3 libFS-1.0.7 libICE-1.0.9 libSM-1.2.2 libXScrnSaver-1.2.2 libXt-1.1.5 libXmu-1.1.2 libXpm-3.5.11 libXfixes-5.0.3 libXcomposite-0.4.4 libXrender-0.9.10 libXcursor-1.1.14 libXdamage-1.1.4 libfontenc-1.1.3 libXfont-1.5.2 libXft-2.3.2 libXi-1.7.8 libXinerama-1.1.3 libXrandr-1.5.1 libXres-1.0.7 libXtst-1.2.3 libXv-1.0.11 libXxf86vm-1.1.4 libpciaccess-0.13.4 libxkbfile-1.0.9 libxshmfence-1.2
+do
+tar jxf \${file}.tar.bz2
+pushd \$file
+case \$file in
+xtrans-1.3.5 ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-docs ;;
+libX11-1.6.4 ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-xf86bigfont ;;
+libICE-1.0.9 | libXmu-1.1.2 | libXi-1.7.8 ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-docs ;;
+libXt-1.1.5 ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --with-appdefaultdir=/etc/X11/app-defaults ;;
+libXfont-1.5.1 | libXfont2-2.0.1 ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-devel-docs ;;
+* ) ./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static ;;
+esac
+make && make install
+popd
+rm -rf \$file
+/sbin/ldconfig
+done
+
+# Xcb-utils
+for file in xcb-util-0.4.0 xcb-util-image-0.4.0 xcb-util-keysyms-0.4.0 xcb-util-renderutil-0.3.9 xcb-util-wm-0.4.1 xcb-util-cursor-0.1.3
+do
+tar jxf \${file}.tar.bz2
+pushd \$file
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-devel-docs --without-doxygen && make && make install
+popd
+rm -rf \$file
+done
+
+# Libdrm (for Mesa)
+tar jxf libdrm-2.4.71.tar.bz2
+pushd libdrm-2.4.71
+sed -i /pthread-stubs/d configure.ac && autoreconf -fi
+./configure -q --prefix=/usr --enable-udev --disable-radeon --disable-amdgpu --disable-nouveau --disable-vmwgfx --disable-freedreno --disable-vc4 --disable-cairo-tests --disable-manpages --disable-valgrind --without-xsltproc
+make && make install
+popd
+rm -rf libdrm-2.4.71
+
+# Libva (for Mesa)
+tar jxf libva-1.7.2.tar.bz2
+pushd libva-1.7.2
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var && make && make install
+popd
+rm -rf libva-1.7.2
+
+# Libxml (for Openbox)
+tar -xf libxml2-2.9.4.tar.gz
+pushd libxml2-2.9.4
+./configure -q --prefix=/usr --disable-static --with-history --without-debug --without-docbook --without-http --without-legacy
+make && make install
+popd
+rm -rf libxml2-2.9.4
+
+# Mesa
+tar xf mesa-12.0.3.tar.xz
+pushd mesa-12.0.3
+sed -i /pthread-stubs/d configure.ac
+./autogen.sh CFLAGS='-O2' CXXFLAGS='-O2' --prefix=/usr --sysconfdir=/etc --disable-gles1 --enable-texture-float --enable-dri3 --enable-osmesa --enable-xa --enable-gbm --disable-xvmc --disable-vdpau --enable-va=yes --enable-glx-tls --disable-gallium-llvm --disable-llvm-shared-libs --disable-valgrind --with-egl-platforms='x11,drm' --with-gallium-drivers='i915,swrast' --with-dri-drivers='swrast,i965'
+make && make install
+popd
+rm -rf mesa-12.0.3
+
+# Xbitmaps (for xsetroot in Xorg apps)
+tar jxf xbitmaps-1.1.1.tar.bz2
+pushd xbitmaps-1.1.1
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var && make install
+popd
+rm -rf xbitmaps-1.1.1
+
+# Xorg apps
+for file in iceauth-1.0.7 mkfontdir-1.0.7 mkfontscale-1.1.2 setxkbmap-1.3.1 xauth-1.0.9 xinput-1.6.2 xkbcomp-1.3.1 xkbevd-1.1.4 xmodmap-1.0.9 xrandr-1.5.0 xrdb-1.1.0 xset-1.2.3 xsetroot-1.1.1
+do
+tar jxf \${file}.tar.bz2
+pushd \$file
+if [ \$file = xset-1.2.3 ]; then
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --without-xf86misc
+else
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+fi
+make && make install
+popd
+rm -rf \$file
+done
+
+# Font encodings
+tar jxf encodings-1.0.4.tar.bz2
+pushd encodings-1.0.4
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+make && make install
+popd
+rm -rf encodings-1.0.4
+
+# Xkeyboard config
+tar jxf xkeyboard-config-2.19.tar.bz2
+pushd xkeyboard-config-2.19
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-nls --without-xsltproc --with-xkb-rules-symlink=xorg
+make && make install
+popd
+rm -rf xkeyboard-config-2.19
+
+# Pixman (for Xorg-server)
+tar -xf pixman-0.34.0.tar.gz
+pushd pixman-0.34.0
+./configure -q --prefix=/usr --disable-static --disable-arm-simd --disable-arm-neon --disable-arm-iwmmxt --disable-arm-iwmmxt2 --disable-mips-dspr2
+make && make install
+popd
+rm -rf pixman-0.34.0
+
+# Libepoxy (for Xorg-server)
+tar jxf libepoxy-1.3.1.tar.bz2
+pushd libepoxy-1.3.1
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf libepoxy-1.3.1
+
+# Xorg-server
+tar jxf xorg-server-1.18.4.tar.bz2
+pushd xorg-server-1.18.4
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-docs --disable-devel-docs --disable-unit-tests --disable-composite --disable-record --disable-xvmc --disable-dga --disable-screensaver --disable-xdmcp --disable-xdm-auth-1 --disable-dri --disable-dri2 --enable-dri3 --disable-xace --disable-xinerama --disable-config-hal --disable-config-wscons --disable-vgahw --disable-xfree86-utils --disable-vbe --disable-int10-module --disable-systemd-logind --enable-install-setuid --with-xkb-output=/var/lib/xkb --disable-xvfb --disable-xnest --disable-xquartz --disable-xwayland --disable-xwin --disable-libunwind --enable-glamor --without-doxygen --without-xmlto --without-fop --without-xsltproc --with-default-font-path=built-ins
+make && make install && mkdir -p /etc/X11/xorg.conf.d
+echo -e \"/tmp/.ICE-unix dir 1777 root root\n/tmp/.X11-unix dir 1777 root root\" > /etc/sysconfig/createfiles
+popd
+rm -rf xorg-server-1.18.4
+
+# Libva Intel driver
+tar jxf libva-intel-driver-1.7.2.tar.bz2
+pushd libva-intel-driver-1.7.2
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+make && make install
+popd
+rm -rf libva-intel-driver-1.7.2
+
+# Libevdev
+tar xf libevdev-1.5.4.tar.xz
+pushd libevdev-1.5.4
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static
+make && make install
+popd
+rm -rf libevdev-1.5.4
+
+# Mtdev (for Libinput)
+tar jxf mtdev-1.1.5.tar.bz2
+pushd mtdev-1.1.5
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf mtdev-1.1.5
+
+# Libinput
+tar xf libinput-1.5.0.tar.xz
+pushd libinput-1.5.0
+./configure -q --prefix=/usr --disable-static --disable-documentation --disable-event-gui --disable-tests --without-libunwind --disable-libwacom --with-udev-dir=/lib/udev
+make && make install
+popd
+rm -rf libinput-1.5.0
+
+# Libinput driver
+pushd xf86-input-libinput
+autoreconf -if
+./configure -q --prefix=/usr && make && make install
+popd
+# Remove touchscreen and mouse acceleration
+sed -i '1d;22,29d;7i\\\\tOption \"AccelProfile\" \"flat\"' /usr/share/X11/xorg.conf.d/40-libinput.conf
+
+# Wacom driver
+tar jxf xf86-input-wacom-0.33.0.tar.bz2
+pushd xf86-input-wacom-0.33.0
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-debug --without-doxygen --with-systemd-unit-dir=no --with-udev-rules-dir=/lib/udev/rules.d
+make && make install
+popd
+rm -rf xf86-input-wacom-0.33.0
+sed -i /k.service/s/^/#/ /lib/udev/rules.d/wacom.rules
+
+# Xorg Intel driver
+tar jxf xf86-video-intel-20160902.tar.bz2
+pushd xf86-video-intel
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --enable-kms-only --disable-dri1 --disable-dri2 --disable-xvmc --disable-uxa --enable-sna --disable-xaa --disable-dga --enable-tear-free --with-default-dri=3 --with-default-accel=sna
+make && make install
+popd
+rm -rf xf86-video-intel
+
+# Xinit
+tar jxf xinit-1.3.4.tar.bz2
+pushd xinit-1.3.4
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --without-twm --without-xclock --without-xterm
+make && make install && ldconfig
+popd
+rm -rf xinit-1.3.4 /usr/bin/startx
+echo -e '#!/bin/bash\nxinit /usr/bin/openbox-session -- /usr/bin/Xorg :0 vt1' > /usr/bin/startx
+chmod a+x /usr/bin/startx
+
+# Disable X screen blanking
+echo -e 'Section \"ServerLayout\"\n\tIdentifier \"serverlayout0\"\n\tOption \"StandbyTime\" \"0\"\n\tOption \"SuspendTime\" \"0\"\n\tOption \"OffTime\" \"0\"\n\tOption \"BlankTime\" \"0\"\nEndSection' > /usr/share/X11/xorg.conf.d/20-monitor.conf
+
+# Fonts
+tar -xf freefont-otf-20120503.tar.gz
+pushd freefont-20120503
+install -d -m755 /usr/share/fonts/OTF/freefont
+install -m644 *.otf /usr/share/fonts/OTF/freefont
+popd
+rm -rf freefont-20120503
+tar jxf dejavu-fonts-ttf-2.37.tar.bz2
+pushd dejavu-fonts-ttf-2.37
+install -d -m755 /usr/share/fonts/TTF/dejavu
+install -m644 ttf/*.ttf /usr/share/fonts/TTF/dejavu
+cp fontconfig/* /etc/fonts/conf.d
+popd
+rm -rf dejavu-fonts-ttf-2.37
+tar jxf fonts-arphic-ukai_0.2.20080216.2.orig.tar.bz2
+pushd fonts-arphic-ukai-0.2.20080216.2
+install -d -m755 /usr/share/fonts/TTF/arphic
+install -m644 ukai.ttc /usr/share/fonts/TTF/arphic
+cp *.conf /etc/fonts/conf.d
+popd
+rm -rf fonts-arphic-ukai-0.2.20080216.2
+sed -i -e '/sans-serif/d' -e '/Uni</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/Uni MBE</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/CN</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/HK</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/TW</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/TW MBE</a\\\\t\t<default><family>sans-serif</family></default>' /etc/fonts/conf.d/41-arphic-ukai.conf
+sed -i -e '/sans-serif/d' -e '/Uni</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/Uni MBE</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/CN</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/HK</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/TW</a\\\\t\t<default><family>sans-serif</family></default>\n\t</alias>\n\t<alias>' -e '/TW MBE</a\\\\t\t<default><family>sans-serif</family></default>' /etc/fonts/conf.d/41-ttf-arphic-ukai.conf
+fc-cache -f
+
+# Urxvt
+tar jxf rxvt-unicode-9.22.tar.bz2
+pushd rxvt-unicode-9.22
+./configure -q --prefix=/usr --disable-everything --enable-xft --enable-backspace-key --enable-delete-key --enable-resources --enable-selectionscrolling --enable-mousewheel --with-x
+make && make install
+popd
+rm -rf rxvt-unicode-9.22
+
+# Libpng (for Cairo)
+tar xf libpng-1.6.26.tar.xz
+pushd libpng-1.6.26
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf libpng-1.6.26
+
+# Cairo (for Pango)
+tar xf cairo-1.14.6.tar.xz
+pushd cairo-1.14.6
+./configure -q --prefix=/usr --disable-static --disable-gtk-doc-html --disable-valgrind --enable-gl --enable-trace=no --with-x
+make && make install
+popd
+rm -rf cairo-1.14.6
+
+# Pango (for Openbox)
+tar xf pango-1.40.3.tar.xz
+pushd pango-1.40.3
+./configure -q --prefix=/usr --sysconfdir=/etc --disable-gtk-doc-html --enable-debug=no --disable-doc-cross-references
+make && make install
+popd
+rm -rf pango-1.40.3
+
+# PyXDG (for Openbox)
+tar -xf pyxdg-0.25.tar.gz
+pushd pyxdg-0.25
+python setup.py install --optimize=1
+popd
+rm -rf pyxdg-0.25
+
+# Openbox
+tar -xf openbox-3.6.1.tar.gz
+pushd openbox-3.6.1
+./configure -q --prefix=/usr --disable-static --sysconfdir=/etc --disable-nls --disable-startup-notification --disable-imlib2 --disable-librsvg --disable-session-management --disable-xrandr --disable-xshape --disable-xinerama --with-x
+make && make install
+popd
+rm -rf openbox-3.6.1
+rm /etc/xdg/openbox/*
+echo 'xsetroot -solid \"#254575\"' > /etc/xdg/openbox/autostart
+echo -e '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<openbox_menu xmlns=\"http://openbox.org/3.4/menu\">\n<menu id=\"rootmenu\" label=\"Openbox\">\n<item label=\"Xfe\"><action name=\"Execute\"><command>xfe</command></action></item>\n<item label=\"Xfw\"><action name=\"Execute\"><command>xfw</command></action></item>\n<item label=\"Urxvt\"><action name=\"Execute\"><command>urxvt -geometry 85x25 -fg white -bg black -cr white -fn xft:DejaVuSansMono:size=16 +sb -sl 600</command></action></item>\n<item label=\"Gimp\"><action name=\"Execute\"><command>gimp --no-splash</command></action></item>\n<item label=\"Chrome\"><action name=\"Execute\"><command>/opt/chrome/chrome</command></action></item>\n<item label=\"Mplayer\"><action name=\"Execute\"><command>gmplayer -msgcharset noconv -msglevel all=0</command></action></item>\n<item label=\"Inkscape\"><action name=\"Execute\"><command>inkscape</command></action></item>\n<separator />\n<item label=\"Exit\"><action name=\"Exit\"><prompt>yes</prompt></action></item>\n</menu></openbox_menu>' > /etc/xdg/openbox/menu.xml
+echo -e '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<openbox_config xmlns=\"http://openbox.org/3.4/rc\" xmlns:xi=\"http://www.w3.org/2001/XInclude\">\n\n<theme>\n<name>Clearlooks</name>\n<titleLayout>NLC</titleLayout>\n<keepBorder>yes</keepBorder>\n<animateIconify>no</animateIconify>\n<font place=\"ActiveWindow\"><name>sans-serif</name><size>14</size></font>\n<font place=\"InactiveWindow\"><name>sans-serif</name><size>14</size></font>\n<font place=\"MenuHeader\"><name>sans-serif</name><size>15</size></font>\n<font place=\"MenuItem\"><name>sans-serif</name><size>15</size></font>\n<font place=\"ActiveOnScreenDisplay\"><name>sans-serif</name><size>14</size></font>\n<font place=\"InactiveOnScreenDisplay\"><name>sans-serif</name><size>14</size></font>\n</theme>\n' > /etc/xdg/openbox/rc.xml
+echo -e '<desktops><number>1</number></desktops>\n\n<resize><drawContents>yes</drawContents><popupShow>Never</popupShow></resize>\n\n<keyboard>\n<keybind key=\"A-Tab\"><action name=\"NextWindow\"><finalactions><action name=\"Focus\"/><action name=\"Raise\"/></finalactions></action></keybind>\n<keybind key=\"A-S-Tab\"><action name=\"PreviousWindow\"><finalactions><action name=\"Focus\"/><action name=\"Raise\"/></finalactions></action></keybind>\n</keyboard>\n' >> /etc/xdg/openbox/rc.xml
+echo -e '<mouse>\n<dragThreshold>1</dragThreshold>\n<doubleClickTime>500</doubleClickTime>\n<screenEdgeWarpTime>0</screenEdgeWarpTime>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Titlebar\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Move\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Titlebar Top Right Bottom Left TLCorner TRCorner BRCorner BLCorner\"><mousebind button=\"Left\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Top\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Resize\"><edge>top</edge></action></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Left\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Resize\"><edge>left</edge></action></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Right\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Resize\"><edge>right</edge></action></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Bottom\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Resize\"><edge>bottom</edge></action></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"TRCorner BRCorner TLCorner BLCorner\"><mousebind button=\"Left\" action=\"Drag\"><action name=\"Resize\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Client\"><mousebind button=\"Left\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind><mousebind button=\"Right\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Icon\"><mousebind button=\"Left\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/><action name=\"ShowMenu\"><menu>client-menu</menu></action></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Close\"><mousebind button=\"Left\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind><mousebind button=\"Left\" action=\"Click\"><action name=\"Close\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo '<context name=\"Desktop\"><mousebind button=\"Left\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind><mousebind button=\"Right\" action=\"Press\"><action name=\"Focus\"/><action name=\"Raise\"/></mousebind></context>' >> /etc/xdg/openbox/rc.xml
+echo -e '<context name=\"Root\"><mousebind button=\"Right\" action=\"Press\"><action name=\"ShowMenu\"><menu>rootmenu</menu></action></mousebind></context>\n</mouse>\n' >> /etc/xdg/openbox/rc.xml
+echo -e '<menu><file>menu.xml</file><hideDelay>200</hideDelay><middle>no</middle><submenuShowDelay>100</submenuShowDelay><submenuHideDelay>400</submenuHideDelay><showIcons>no</showIcons></menu>\n</openbox_config>' >> /etc/xdg/openbox/rc.xml
+
+# DMZ white cursor
+mkdir /usr/share/icons
+tar -xf 159847-DMZ-White.tar.gz -C /usr/share/icons
+rm /usr/share/icons/DMZ-White/index.theme
+chown -R root:root /usr/share/icons/DMZ-White
+mkdir /usr/share/icons/default
+mv /usr/share/icons/DMZ-White/cursor.theme /usr/share/icons/default/index.theme
+
+# Fox (for Xfe)
+tar -xf fox-1.6.52.tar.gz
+pushd fox-1.6.52
+./configure -q --prefix=/usr --disable-static --enable-release --disable-debug --disable-tiff --with-x --without-profiling --with-xft --with-xshm --with-shape --with-xcursor --with-xrender --with-xfixes --with-xinput --with-xim --without-opengl
+make && make install
+popd
+rm -rf fox-1.6.52
+
+# Xfe
+tar -xf xfe-1.42.tar.gz
+pushd xfe-1.42
+./configure -q --prefix=/usr --disable-nls --disable-sn --enable-release --with-x
+make && make install
+popd
+rm -rf xfe-1.42
+
+# Json-glib (for Gegl)
+tar xf json-glib-1.2.2.tar.xz
+pushd json-glib-1.2.2
+./configure -q --prefix=/usr --disable-glibtest --disable-gtk-doc-html --disable-nls --disable-man --disable-debug
+make && make install
+popd
+rm -rf json-glib-1.2.2
+
+# Babl (for Gegl)
+tar jxf babl-0.1.18.tar.bz2
+pushd babl-0.1.18
+./configure -q --prefix=/usr --disable-docs && make && make install
+popd
+rm -rf babl-0.1.18
+
+# Yasm (for Libjpeg-turbo)
+tar -xf yasm-1.3.0.tar.gz
+pushd yasm-1.3.0
+sed -i 's/) ytasm.*/)/' Makefile.in
+./configure -q --prefix=/usr --disable-nls && make && make install
+popd
+rm -rf yasm-1.3.0
+
+# Libjpeg-turbo (for Gegl)
+tar -xf libjpeg-turbo-1.5.1.tar.gz
+pushd libjpeg-turbo-1.5.1
+./configure -q --prefix=/usr --with-jpeg8 --disable-static && make && make install
+popd
+rm -rf libjpeg-turbo-1.5.1
+
+# Gegl (for Gimp)
+tar jxf gegl-0.2.0.tar.bz2
+pushd gegl-0.2.0
+./configure -q --prefix=/usr --disable-nls --disable-docs --disable-glibtest --disable-gtk-doc-html --without-vala --without-lensfun --without-librsvg --without-openexr --without-sdl --without-libopenraw --without-jasper --without-graphviz --without-lua --without-libavformat --without-libv4l --without-libspiro --without-exiv2 --without-umfpack
+make && make install
+popd
+rm -rf gegl-0.2.0
+
+# ATK (for Gtk+)
+tar xf atk-2.22.0.tar.xz
+pushd atk-2.22.0
+./configure -q --prefix=/usr --disable-glibtest --disable-nls --disable-gtk-doc-html
+make && make install
+popd
+rm -rf atk-2.22.0
+
+# Gdk-pixbuf (for Gtk+)
+tar xf gdk-pixbuf-2.36.0.tar.xz
+pushd gdk-pixbuf-2.36.0
+./configure -q --prefix=/usr --disable-debug --disable-nls --disable-glibtest --disable-gtk-doc-html --without-libtiff --with-x11
+make && make install
+popd
+rm -rf gdk-pixbuf-2.36.0
+
+# Gtk+ (for Gimp)
+tar xf gtk+-2.24.31.tar.xz
+pushd gtk+-2.24.31
+./configure -q --prefix=/usr --sysconfdir=/etc --disable-debug --disable-xinerama --disable-glibtest --disable-cups --disable-papi --disable-gtk-doc-html --with-x --with-xinput=yes
+make && make install
+popd
+rm -rf gtk+-2.24.31 /usr/share/gtk-2.0
+echo -e 'gtk-theme-name = \"Clearlooks\"\ngtk-font-name = \"sans-serif 12\"' > /etc/gtk-2.0/gtkrc
+tar xf hicolor-icon-theme-0.15.tar.xz
+pushd hicolor-icon-theme-0.15
+./configure -q --prefix=/usr && make && make install
+popd
+rm -rf hicolor-icon-theme-0.15
+mkdir -p /home/me/.local/share
+chown -R me:users /home/me/.local
+
+# Gimp
+tar jxf gimp-2.8.18.tar.bz2
+pushd gimp-2.8.18
+./configure -q --prefix=/usr --sysconfdir=/etc --without-gvfs --disable-python --disable-maintainer-mode --disable-nls --disable-glibtest --disable-gtktest --disable-gtk-doc-html --without-libtiff --without-gs --without-libmng --without-libexif --without-libxpm --without-webkit --without-librsvg --without-print --without-poppler --without-cairo-pdf --without-gvfs --without-libcurl --without-wmf --without-libjasper --without-alsa --without-script-fu --without-mac-twain --without-dbus --without-xvfb-run --with-x --with-lcms
+sed -i 's|\${datarootdir}|/usr/share|' docs/gimprc-2.8.5
+sed -i 's|\${datarootdir}|/usr/share|' docs/gimptool-2.0.1
+make && make install
+popd
+rm -rf gimp-2.8.18
+
+# Libmad (for Mplayer)
+tar -xf libmad-0.15.1b.tar.gz
+pushd libmad-0.15.1b
+patch -Np1 -i ../libmad-0.15.1b-fixes-1.patch
+sed s/AM_CONFIG_HEADER/AC_CONFIG_HEADERS/g -i configure.ac
+touch NEWS AUTHORS ChangeLog
+autoreconf -fi
+./configure -q --prefix=/usr --disable-static --enable-speed --enable-fpm=intel --disable-debugging
+make && make install
+popd
+rm -rf libmad-0.15.1b
+echo -e 'prefix=/usr\nexec_prefix=\${prefix}\nlibdir=\${exec_prefix}/lib\nincludedir=\${prefix}/include\n\nName: mad\nDescription: MPEG audio decoder\nRequires:\nVersion: 0.15.1b\nLibs: -L\${libdir} -lmad\nCflags: -I\${includedir}' > /usr/lib/pkgconfig/mad.pc
+
+# FAAD2 (for Mplayer)
+tar jxf faad2-2.7.tar.bz2
+pushd faad2-2.7
+patch -Np1 -i ../faad2-2.7-mp4ff-1.patch
+sed -i s/AM_CONFIG_HEADER/AC_CONFIG_HEADERS/g configure.in
+sed -i s/man_MANS/man1_MANS/g frontend/Makefile.am
+autoreconf -fi
+./configure -q --prefix=/usr --disable-static
+make && make install
+popd
+rm -rf faad2-2.7
+
+# Liba52 (for Mplayer)
+tar -xf a52dec-0.7.4.tar.gz
+pushd a52dec-0.7.4
+./configure -q --prefix=/usr --mandir=/usr/share/man --enable-shared --disable-static --disable-oss --disable-solaris-audio --disable-al-audio --disable-win CFLAGS='-g -O2 -fPIC'
+make && make install
+cp liba52/a52_internal.h /usr/include/a52dec
+popd
+rm -rf a52dec-0.7.4
+
+# Xvid (for Mplayer)
+tar -xf xvidcore-1.3.4.tar.gz
+pushd xvidcore/build/generic
+./configure -q --prefix=/usr && make
+sed -i '/libdir.*STATIC_LIB/ s/^/#/' Makefile
+make install
+chmod 755 /usr/lib/libxvidcore.so.4.3
+popd
+rm -rf xvidcore
+
+# Mplayer
+tar xf MPlayer-1.3.0.tar.xz
+pushd MPlayer-1.3.0
+./configure --prefix=/usr --confdir=/etc/mplayer --enable-dynamic-plugins --enable-menu --enable-gui --disable-mencoder --disable-tv --disable-bitmap-font --disable-unrarexec --disable-sortsub --disable-ftp --disable-vcd --disable-gif --disable-png --disable-mng --disable-jpeg --disable-libcdio --disable-postproc --disable-xinerama --disable-xss --disable-tga --disable-dvb --disable-pnm --disable-md5sum --disable-yuv4mpeg --disable-ossaudio --disable-langinfo --disable-enca
+make && make install
+ln -sf ../icons/hicolor/48x48/apps/mplayer.png /usr/share/pixmaps/mplayer.png
+gtk-update-icon-cache
+popd
+rm -rf MPlayer-1.3.0
+tar jxf Clearlooks-1.7.tar.bz2 -C /usr/share/mplayer/skins
+mv /usr/share/mplayer/skins/{Clearlooks,default}
+
+# Curl (for Transmission)
+tar jxf curl-7.51.0.tar.bz2
+pushd curl-7.51.0
+./configure -q --prefix=/usr --disable-static --enable-threaded-resolver --disable-debug --enable-optimize --disable-curldebug --disable-manual
+make && make install
+popd
+rm -rf curl-7.51.0
+
+# Libevent (for Transmission)
+tar -xf libevent-2.0.22-stable.tar.gz
+pushd libevent-2.0.22-stable
+./configure -q --prefix=/usr --disable-static --disable-debug-mode && make && make install
+popd
+rm -rf libevent-2.0.22-stable
+
+# Transmission
+tar xf transmission-2.92.tar.xz
+pushd transmission-2.92
+./configure -q --prefix=/usr --disable-nls --disable-daemon --enable-cli && make && make install
+popd
+rm -rf transmission-2.92
+
+# Ghostscript
+tar -xf ghostscript-9.20.tar.gz
+pushd ghostscript-9.20
+rm -rf freetype jpeg libpng zlib
+./configure --prefix=/usr --disable-compile-inits --enable-dynamic --disable-cups --disable-dbus --without-libidn --without-libpaper --without-pdftoraster --without-ijs --without-luratech --without-jbig2dec --with-drivers=PS
+make && make install
+popd
+rm -rf ghostscript-9.20
+
+# Fontforge
+tar -xf fontforge-dist-20161004.tar.gz
+pushd fontforge-2.0.20161004
+./configure --prefix=/usr --enable-gtk2-use --disable-static --without-libtiff --without-libzmq --without-giflib
+make && make install
+popd
+rm -rf fontforge-2.0.20161004
+
+# Unzip
+tar -xf unzip60.tar.gz
+pushd unzip60
+make -f unix/Makefile generic
+make prefix=/usr MANDIR=/usr/share/man/man1 -f unix/Makefile install
+popd
+rm -rf unzip60
+
+# Unrar
+tar -xf unrarsrc-5.4.5.tar.gz
+pushd unrar
+make -f makefile
+install -m755 unrar /usr/bin
+popd
+rm -rf unrar
+
+# Libatomic_ops (for GC)
+tar -xf libatomic_ops-7.4.4.tar.gz
+pushd libatomic_ops-7.4.4
+./configure -q --prefix=/usr --enable-shared --disable-static && make && make install
+popd
+rm -rf libatomic_ops-7.4.4 /usr/share/libatomic_ops
+
+# GC (for Inkscape)
+tar -xf gc-7.6.0.tar.gz
+pushd gc-7.6.0
+./configure -q --prefix=/usr --enable-cplusplus --disable-static --disable-gcj-support --disable-java-finalization
+make && make install
+popd
+rm -rf gc-7.6.0
+
+# Libsigc++ (for Cairomm)
+tar xf libsigc++-2.10.0.tar.xz
+pushd libsigc++-2.10.0
+./configure -q --prefix=/usr --disable-documentation && make && make install
+popd
+rm -rf libsigc++-2.10.0
+
+# Cairomm (for Inkscape)
+tar -xf cairomm-1.12.0.tar.gz
+pushd cairomm-1.12.0
+./configure -q --prefix=/usr --disable-documentation && make && make install
+popd
+rm -rf cairomm-1.12.0
+
+# Glibmm (for Inkscape)
+tar xf glibmm-2.50.0.tar.xz
+pushd glibmm-2.50.0
+./configure -q --prefix=/usr --disable-documentation && make && make install
+popd
+rm -rf glibmm-2.50.0
+
+# Gsl (for Inkscape)
+tar -xf gsl-2.2.1.tar.gz
+pushd gsl-2.2.1
+./configure -q --prefix=/usr --disable-static && make && make install
+popd
+rm -rf gsl-2.2.1
+
+# Libxslt (for Inkscape)
+tar -xf libxslt-1.1.29.tar.gz
+pushd libxslt-1.1.29
+./configure -q --prefix=/usr --disable-static --without-debug --without-crypto
+make && make install
+popd
+rm -rf libxslt-1.1.29
+
+# Pangomm (for Gtkmm)
+tar xf pangomm-2.40.1.tar.xz
+pushd pangomm-2.40.1
+./configure -q --prefix=/usr --disable-documentation && make && make install
+popd
+rm -rf pangomm-2.40.1
+
+# Gtkmm (for Inkscape)
+tar xf gtkmm-2.24.5.tar.xz
+pushd gtkmm-2.24.5
+CXXFLAGS='-g -O2 -std=c++11' ./configure -q --prefix=/usr --disable-documentation --disable-api-atkmm
+make && make install
+popd
+rm -rf gtkmm-2.24.5
+
+# Boost (for Inkscape)
+tar jxf boost_1_62_0.tar.bz2
+pushd boost_1_62_0
+./bootstrap.sh --prefix=/usr
+./b2 stage threading=multi link=shared
+./b2 install threading=multi link=shared
+popd
+rm -rf boost_1_62_0
+
+# Popt (for Inkscape)
+tar -xf popt-1.16.tar.gz
+pushd popt-1.16
+./configure -q --prefix=/usr --disable-static --disable-nls && make && make install
+popd
+rm -rf popt-1.16
+
+# Inkscape
+tar jxf inkscape-0.91.tar.bz2
+pushd inkscape-0.91
+sed 's/ScopedPtr<char>/make_unique_ptr_gfree/' -i src/ui/clipboard.cpp
+CXXFLAGS='-g -O2 -std=c++11' ./configure -q --prefix=/usr --disable-nls --disable-wpg --disable-visio --disable-cdr --disable-lcms --disable-poppler-cairo --without-inkjar
+make && make install
+popd
+rm -rf inkscape-0.91
+gtk-update-icon-cache
+
+# NSS and NSPR (for Chrome)
+tar -xf nss-3.27.1-with-nspr-4.13.tar.gz
+pushd nss-3.27.1/nspr
+sed -ri 's/^(RELEASE_BINS =).*/\1/' pr/src/misc/Makefile.in
+sed -i 's/\$(LIBRARY) //' config/rules.mk
+./configure -q --prefix=/usr --with-pthreads --enable-64bit --enable-strip
+make && make install
+popd
+patch -d nss-3.27.1 -Np1 -st -i ../nss-3.26-standalone-1.patch
+pushd nss-3.27.1/nss
+make BUILD_OPT=1 NSPR_INCLUDE_DIR=/usr/include/nspr USE_SYSTEM_ZLIB=1 ZLIB_LIBS=-lz USE_64=1
+cd ../dist
+install -m755 Linux*/lib/*.so /usr/lib
+install -m644 Linux*/lib/{*.chk,libcrmf.a} /usr/lib
+install -m755 -d /usr/include/nss
+cp -RL {public,private}/nss/* /usr/include/nss
+chmod 644 /usr/include/nss/*
+install -m755 Linux*/bin/{certutil,nss-config,pk12util} /usr/bin
+install -m644 Linux*/lib/pkgconfig/nss.pc /usr/lib/pkgconfig
+popd
+rm -rf nss-3.27.1
+
+# Nettle (for Chrome)
+tar -xf nettle-3.3.tar.gz
+pushd nettle-3.3
+./configure -q --prefix=/usr --disable-static --disable-documentation --disable-arm-neon
+make && make install
+chmod 755 /usr/lib/lib{hogweed,nettle}.so
+popd
+rm -rf nettle-3.3
+
+# Cups (for Chrome)
+tar -xf cups-2.2.1-source.tar.gz
+pushd cups-2.2.1
+sed -i 's/@CUPS_HTMLVIEW@/chrome/' desktop/cups.desktop.in
+sed -i 's:555:755:g;s:444:644:g' Makedefs.in
+sed -i '/LIBGCRYPTCONFIG/d' config-scripts/cups-ssl.m4
+aclocal -I config-scripts
+autoconf -I config-scripts
+CC=gcc ./configure -q --libdir=/usr/lib --disable-dbus --disable-largefile --disable-gssapi --disable-ssl --disable-pam --disable-avahi --disable-dnssd --disable-launchd --disable-browsing --disable-raw-printing --disable-systemd --with-rcdir=/tmp/cupsinit --with-components=core
+make && make install && rm -rf /tmp/cupsinit
+popd
+rm -rf cups-2.2.1
+
+# Dbus (for Chrome)
+tar -xf dbus-1.11.6.tar.gz
+pushd dbus-1.11.6
+./configure -q --prefix=/usr --sysconfdir=/etc --localstatedir=/var --disable-static --disable-stats --disable-systemd --disable-selinux --disable-apparmor --without-systemdsystemunitdir --with-console-auth-dir=/run/console
+make && make install
+popd
+rm -rf dbus-1.11.6
+dbus-uuidgen --ensure
+
+# Dbus glib (for Gconf)
+tar -xf dbus-glib-0.108.tar.gz
+pushd dbus-glib-0.108
+./configure -q --prefix=/usr --sysconfdir=/etc --disable-static --disable-gtk-doc-html --disable-tests --disable-checks
+make && make install
+popd
+rm -rf dbus-glib-0.108
+
+# Gconf (for Chrome)
+tar xf GConf-3.2.6.tar.xz
+pushd GConf-3.2.6
+./configure -q --prefix=/usr --sysconfdir=/etc --disable-orbit --disable-static --disable-debug --disable-gtk-doc-html --disable-nls --with-gtk=2.0 --without-openldap
+make && make install
+ln -s gconf.xml.defaults /etc/gconf/gconf.xml.system
+popd
+rm -rf GConf-3.2.6"
+
+# Chrome
+mkdir /mnt/sources/tmp
+dpkg-deb -x /mnt/sources/google-chrome-stable_current_amd64.deb /mnt/sources/tmp
+sudo mv /mnt/sources/tmp/opt/google/chrome /mnt/opt
+sudo chown -R root:root /mnt/opt/chrome
+sudo chmod 4755 /mnt/opt/chrome/chrome-sandbox
+rm -rf /mnt/sources/tmp
+
+sudo rm -rf /mnt/{sources,tools} /mnt/tmp/* /mnt/etc/sudoers.d /mnt/usr/share/{doc,info,man,gtk-doc}
+sudo rm -f /mnt/usr/lib/lib{bfd,opcodes}.a /mnt/usr/lib/libbz2.a /mnt/usr/lib/lib{com_err,e2p,ext2fs,ss}.a /mnt/usr/lib/libltdl.a /mnt/usr/lib/libfl.a /mnt/usr/lib/libfl_pic.a /mnt/usr/lib/libz.a
+sudo umount /mnt/dev/pts
+sudo umount /mnt/dev /mnt/run /mnt/proc /mnt/sys
+
+sudo find /mnt/usr/lib -type f -name \*.a -exec strip --strip-debug {} \;
+sudo find /mnt/lib /mnt/usr/lib -type f -name \*.so* -exec strip --strip-unneeded {} \;
+sudo find /mnt/{bin,sbin} /mnt/usr/{bin,sbin,libexec} -type f -exec strip --strip-all {} \;
+
+sudo umount /mnt
