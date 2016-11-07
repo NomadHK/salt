@@ -60,7 +60,7 @@ http://www.zlib.net/zlib-1.2.8.tar.xz
 https://www.sudo.ws/dist/sudo-1.8.18p1.tar.gz
 ftp://ftp.alsa-project.org/pub/lib/alsa-lib-1.1.2.tar.bz2
 ftp://ftp.alsa-project.org/pub/utils/alsa-utils-1.1.2.tar.bz2
-https://openssl.org/source/openssl-1.0.2h.tar.gz
+https://www.openssl.org/source/openssl-1.0.2j.tar.gz
 http://roy.marples.name/downloads/dhcpcd/dhcpcd-6.11.5.tar.xz
 https://github.com/thom311/libnl/releases/download/libnl3_2_28/libnl-3.2.28.tar.gz
 http://w1.fi/releases/wpa_supplicant-2.6.tar.gz
