@@ -894,14 +894,14 @@ popd
 rm -rf alsa-utils-1.1.2
 
 # OpenSSL (for Wpa_supplicant, Xorg-server and Libevent)
-tar -xf openssl-1.0.2h.tar.gz
-pushd openssl-1.0.2h
+tar -xf openssl-1.0.2j.tar.gz
+pushd openssl-1.0.2j
 ./config --prefix=/usr --openssldir=/etc/ssl --libdir=lib shared zlib-dynamic no-rc5 no-idea
 make depend && make
 sed -i 's/ libcrypto.a//;s/ libssl.a//' Makefile
 make MANDIR=/usr/share/man install
 popd
-rm -rf openssl-1.0.2h
+rm -rf openssl-1.0.2j
 
 # Dhcpcd
 tar xf dhcpcd-6.11.5.tar.xz
