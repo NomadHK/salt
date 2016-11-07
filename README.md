@@ -1,6 +1,6 @@
 This is a scripted record of my LFS installation. If you have a computer like mine (Dell Inspiron 7347, Core i5-4210U) and share my penchant for no-frills geeky system, you may like to try it:
 
-Boot into Lubuntu LiveCD/USB. Connect to the internet. Download the build script, the kernel .config, and the wget list.
+Boot into Lubuntu 16.10 LiveCD/USB. Connect to the internet. Download the build script, the kernel .config, and the wget list.
 
 Create two partitions:
 * /dev/sda1, FAT32, 100MB, to be mounted as esp
