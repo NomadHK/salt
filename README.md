@@ -40,4 +40,4 @@ Note the focus of this script is building a particular simple flavor of (B)LFS, 
 
 Use this script as a reference (in combo with [Linux From Scratch](http://www.linuxfromscratch.org/)) to write your own. You *can* build LFS into a usable desktop OS. Updating certain softwares is as simple as replacing a directory in /opt, as the above examples of Chrome and Blender show. If you need to update or uninstall a software deeper in the dependency dough, you can edit a few lines in your build script and rebuild your system. Sure, it's going to take 8+ hours, but you can let it run while you sleep; Microsoft Windows often take as long to update.
 
-Consult lines 1247-1269 in the build script on how to install fonts.
+Consult lines 1236-1258 in the build script on how to install fonts.
