@@ -1481,6 +1481,7 @@ popd
 rm -rf MPlayer-1.3.0
 tar jxf Clearlooks-1.7.tar.bz2 -C /usr/share/mplayer/skins
 mv /usr/share/mplayer/skins/{Clearlooks,default}
+echo -e 'subfont-text-scale=3\nsubfont-blur=0\nsws=0\nsid=0\nuse-filename-title=yes\ndr=yes\nnodouble=yes' > /etc/mplayer/mplayer.conf
 
 # Curl (for Transmission)
 tar jxf curl-7.51.0.tar.bz2
