@@ -28,6 +28,8 @@ To scan for Wifi points, type (as root or sudo) `wpa_cli scan` followed by `wpa_
 
 Sound volume is controlled via command `alsamixer`. If you get no sound, check /etc/asound.conf.
 
+The Mplayer command in the right-click menu runs gmplayer, a gui version of the software. It often has trouble playing MKV files (quitting after every 20 minutes or so). Run mplayer (alias "play") from the terminal to solve this problem.
+
 Chrome sometimes refuses to appear. In that case, kill the lurking chrome processes and try starting it again. To update Chrome, [download its deb package](https://www.google.com/chrome/browser/desktop/) in Lubuntu LiveCD/USB, open it up with `dpkg-deb -x`, and then replace the chrome directory in the SALT system's /opt with the one in the deb package. Many software packages can be installed this way. For example, [Blender](https://www.blender.org/)'s tarball can be extracted into /opt and run via (or added into /etc/xdg/openbox/menu.xml and run through the right-click menu):
 
 `LD_LIBRARY_PATH=/opt/[dir]/lib /opt/[dir]/blender`
