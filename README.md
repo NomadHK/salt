@@ -12,7 +12,7 @@ Run build.
 
 The installation can be tripped by an unsuccessful download in the wget command at line 10. After this command is done (you see the terminal output moving again after a long pause during the download), a log file is placed in ~/Documents/wgetlog. Check it to see that the number of downloaded packages matches the number of lines in the list file — if they don't match, either because of bad connection or dead repository, stop the script and retry later. Also check to see that the directories linux-firmware and xf86-input-libinput are present in /mnt/sources and not empty when the script starts to compile stuff (terminal messages scrolling by furiously).
 
-The whole process takes about 8 hours to complete on my computer. Other than the base LFS programs (without Attr, Acl, Libcap, Grub, Libpipeline, Man-DB, Texinfo and any documentation), it also installs Sudo, ALSA, Dhcpcd, Wpa_supplicant, X, Wacom driver, Openbox, Gimp, Inkscape, Unrar, Unzip, Urxvt, Xfe (with Xfw), Mplayer, Transmission-cli and Chrome.
+The whole process takes about 8 hours to complete on my computer. Other than the base LFS programs (without Attr, Acl, Libcap, Grub, Libpipeline, Man-DB, Texinfo and any documentation), it also installs Sudo, ALSA, Dhcpcd, Wpa_supplicant, X, Wacom driver, Openbox, Gimp, Inkscape, Unrar, Unzip, Urxvt, Xfe (with Xfw), Mplayer, Transmission-cli, Chrome, Ghostscript and Fontforge (these last two supplement Groff).
 
 After boot-up, you can log into the "me" account. Type `startx` to bring up the GUI, and then right-click to bring up the programs menu. Alt+Tab to bring a window to the front.
 
