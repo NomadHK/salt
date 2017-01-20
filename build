@@ -287,7 +287,7 @@ echo -e "root::0:0:root:/root:/bin/bash\nbin:x:1:1:bin:/dev/null:/bin/false\ndae
 echo -e "root:x:0:\nbin:x:1:daemon\nsys:x:2:\nkmem:x:3:\ntape:x:4:\ntty:x:5:\ndaemon:x:6:\nfloppy:x:7:\ndisk:x:8:\nlp:x:9:\ndialout:x:10:\naudio:x:11:me\nvideo:x:12:me\nutmp:x:13:\nusb:x:14:\ncdrom:x:15:\nadm:x:16:\nmessagebus:x:18:\nsystemd-journal:x:23:\ninput:x:24:\nmail:x:34:\nnogroup:x:99:\nusers:x:999:" | sudo tee /mnt/etc/group > /dev/null
 echo -e "PS1=\"\[\\\e[0;31m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"" | sudo tee /mnt/root/.bashrc > /dev/null
 sudo chown -R 999:999 /mnt/home/me
-echo -e "PS1=\"\[\\\e[1;30m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"\nalias play=\"mplayer -msgcharset noconv -msglevel all=0\"" > /mnt/home/me/.bashrc
+echo -e "PS1=\"\[\\\e[1;30m\]\w\[\\\e[m\] \[\\\e[1;37m\]\"\nalias date=\"date +'%-l:%M%P %a %-d/%-m/%Y'\"\nalias play=\"mplayer -msgcharset noconv -msglevel all=0 -utf8\"" > /mnt/home/me/.bashrc
 
 echo -e "id:3:initdefault:\n\nsi::sysinit:/etc/init.d/setup\n\nl0:0:wait:/etc/init.d/level0\nl6:6:wait:/etc/init.d/level6\n\nsu:S016:once:sulogin\n\n1:3:respawn:agetty tty1 38400\n2:3:respawn:agetty tty2 38400" | sudo tee /mnt/etc/inittab > /dev/null
 sudo mkdir /mnt/etc/init.d
