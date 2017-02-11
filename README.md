@@ -32,7 +32,7 @@ The Mplayer command in the right-click menu runs gmplayer, a gui version of the 
 
 Chrome sometimes refuses to appear. In that case, kill the lurking chrome processes and try starting it again. To update Chrome, [download its deb package](https://www.google.com/chrome/browser/desktop/) in Lubuntu LiveCD/USB, open it up with `dpkg-deb -x`, and then replace the chrome directory in the SALT system's /opt with the one in the deb package. Many software packages can be installed this way. For example, [Blender](https://www.blender.org/)'s tarball can be extracted into /opt and run via (or added into /etc/xdg/openbox/menu.xml and run through the right-click menu):
 
-`LD_LIBRARY_PATH=/opt/[dir]/lib /opt/[dir]/blender`
+`env LD_LIBRARY_PATH=/opt/[dir]/lib /opt/[dir]/blender`
 
 Finally, to shutdown, type (as root or sudo) `init 0`, or to reboot, type `init 6`.
 
