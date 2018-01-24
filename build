@@ -602,7 +602,7 @@ zic -L leapseconds -d /usr/share/zoneinfo/right -y \"sh yearistype.sh\" \$tz
 done
 cp zone.tab zone1970.tab iso3166.tab /usr/share/zoneinfo
 zic -d /usr/share/zoneinfo -p America/New_York
-ln -s /usr/share/zoneinfo/Asia/Hong_Kong /etc/localtime
+ln -s /usr/share/zoneinfo/America/New_York /etc/localtime
 popd
 rm -rf glibc-2.26
 rm /tool/bin/ld /tool/x86_64-pc-linux-gnu/bin/ld
