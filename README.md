@@ -15,4 +15,4 @@ using Lubuntu 17.10.1 Live as host. Note that
 
 4. Lines 550-556 create the init scripts.
 
-4. Read lines 2069-2091 for post-installation instruction.
+4. Read lines 2069-2091 for post-install instruction.
