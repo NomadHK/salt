@@ -13,4 +13,6 @@ using Lubuntu 17.10.1 Live as host. Note that
    kernel as "Geronimo"; you can change it thru CONFIG_DEFAULT_HOSTNAME. Take note of
    the microcode update instruction in lines 1163-1167.
 
+4. Lines 550-556 create the init scripts.
+
 4. Read lines 2069-2091 for post-installation instruction.
