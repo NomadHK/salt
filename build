@@ -2079,7 +2079,7 @@ sudo umount /mnt
 
 # The mplayer command in the right-click menu runs gmplayer, a gui version of the software.
 # It often has trouble playing MKV files (quitting after every 20 minutes or so). Run mplayer
-# (alias "play") from the terminal to solve this problem.
+# from the terminal to solve this problem.
 
 # Chrome sometimes refuses to appear. In that case, kill the lurking chrome processes and try
 # starting it again. To update Chrome, download its deb package in Lubuntu Live, open it with
