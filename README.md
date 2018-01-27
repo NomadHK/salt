@@ -7,7 +7,7 @@ using Lubuntu 17.10.1 Live as host. Note that
 2. Lines 6-12 create two partitions: a 100MB esp and a linux root partition with the
    remaining space. Lines 13-15 make the pertinent file systems in these partitions.
 
-3. Line 1175 creates the kernel config. You can run just this line, and then place the
+3. Line 1176 creates the kernel config. You can run just this line, and then place the
    generated .config into the kernel source directory, and make menuconfig to customize
    it for your system. The host name of the installed system is configured into the
    kernel as "Geronimo"; you can change it thru CONFIG_DEFAULT_HOSTNAME. Take note of
