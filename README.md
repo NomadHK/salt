@@ -11,7 +11,7 @@ using Lubuntu 17.10.1 Live as host. Note that
    generated .config into the kernel source directory, and make menuconfig to customize
    it for your system. The host name of the installed system is configured into the
    kernel as "Geronimo"; you can change it thru CONFIG_DEFAULT_HOSTNAME. Take note of
-   the microcode update instruction in lines 1163-1167.
+   the microcode update instruction in lines 1163-1167 (my recommendation: skip it).
 
 4. Lines 551-557 create the init scripts.
 
